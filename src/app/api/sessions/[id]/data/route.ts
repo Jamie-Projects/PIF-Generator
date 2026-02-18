@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { authenticateRequest } from '@/lib/auth';
+import { BASPI_SECTIONS } from '@/lib/baspiSchema';
 
 export async function GET(
   request: Request,
@@ -26,26 +27,53 @@ export async function GET(
     return NextResponse.json({ error: 'Session not found' }, { status: 404 });
   }
 
-  // Flatten all section data into a single object
-  const formData: Record<string, unknown> = {
-    address: session.propertyForm?.address,
-    postcode: session.propertyForm?.postcode,
-    sellerName: session.propertyForm?.sellerName,
-    sellerEmail: session.propertyForm?.sellerEmail,
-    status: session.status,
-    completedAt: session.completedAt,
-  };
+  // Build a lookup of saved section data
+  const savedSections = new Map(
+    (session.propertyForm?.sections ?? []).map(s => [s.sectionKey, s])
+  );
 
-  const sections: Record<string, unknown> = {};
-  for (const section of session.propertyForm?.sections ?? []) {
-    sections[section.sectionKey] = {
-      status: section.status,
-      data: section.data,
-      lastSavedAt: section.lastSavedAt,
+  // Build consistent structure from schema — every field always present
+  const sections: Record<string, {
+    title: string;
+    part: string;
+    status: string;
+    lastSavedAt: string | null;
+    fields: Record<string, unknown>;
+  }> = {};
+
+  for (const sectionDef of BASPI_SECTIONS) {
+    const saved = savedSections.get(sectionDef.key);
+    const savedData = (saved?.data as Record<string, unknown>) ?? {};
+
+    const fields: Record<string, unknown> = {};
+    for (const field of sectionDef.fields) {
+      const value = savedData[field.key];
+      fields[field.key] = value !== undefined ? value : null;
+    }
+
+    sections[sectionDef.key] = {
+      title: sectionDef.title,
+      part: sectionDef.part,
+      status: String(saved?.status ?? 'NOT_STARTED'),
+      lastSavedAt: saved?.lastSavedAt?.toISOString() ?? null,
+      fields,
     };
   }
 
-  formData.sections = sections;
-
-  return NextResponse.json({ data: formData });
+  return NextResponse.json({
+    data: {
+      sessionId: session.id,
+      status: session.status,
+      completedAt: session.completedAt,
+      property: {
+        address: session.propertyForm?.address ?? null,
+        postcode: session.propertyForm?.postcode ?? null,
+      },
+      seller: {
+        name: session.propertyForm?.sellerName ?? null,
+        email: session.propertyForm?.sellerEmail ?? null,
+      },
+      sections,
+    },
+  });
 }
