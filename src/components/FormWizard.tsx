@@ -428,7 +428,7 @@ export default function FormWizard({
               </div>
             </div>
             <span className="text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">
-              {progressPercent}% · ~{Math.max(1, Math.ceil((totalFields - answeredFields) * 0.25))} min left
+              {progressPercent}% · ~{Math.max(1, Math.ceil((totalFields - answeredFields) * 0.1))} min left
             </span>
             <SaveIndicator status={saveStatus} lastSaved={lastSaved} compact />
           </div>
