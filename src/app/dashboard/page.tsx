@@ -68,28 +68,28 @@ export default function DashboardPage() {
     <div>
       {/* Stats */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Total Sessions</p>
-          <p className="mt-1 text-3xl font-bold text-gray-900">{sessions.length}</p>
+        <div className="rounded-xl bg-white dark:bg-gray-800 p-5 shadow-sm">
+          <p className="text-sm text-gray-500 dark:text-gray-400">Total Sessions</p>
+          <p className="mt-1 text-3xl font-bold text-gray-900 dark:text-white">{sessions.length}</p>
         </div>
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">In Progress</p>
-          <p className="mt-1 text-3xl font-bold text-yellow-600">{activeCount}</p>
+        <div className="rounded-xl bg-white dark:bg-gray-800 p-5 shadow-sm">
+          <p className="text-sm text-gray-500 dark:text-gray-400">In Progress</p>
+          <p className="mt-1 text-3xl font-bold text-yellow-600 dark:text-yellow-400">{activeCount}</p>
         </div>
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Completed</p>
+        <div className="rounded-xl bg-white dark:bg-gray-800 p-5 shadow-sm">
+          <p className="text-sm text-gray-500 dark:text-gray-400">Completed</p>
           <p className="mt-1 text-3xl font-bold text-green-600">{completedCount}</p>
         </div>
       </div>
 
       {/* Header */}
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-xl font-bold text-gray-900">Sessions</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Sessions</h2>
         <div className="flex gap-2">
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="rounded-lg border px-3 py-2 text-sm"
+            className="rounded-lg border dark:border-gray-700 px-3 py-2 text-sm dark:bg-gray-800 dark:text-gray-200"
           >
             <option value="all">All</option>
             <option value="ACTIVE">In Progress</option>
@@ -106,38 +106,38 @@ export default function DashboardPage() {
 
       {/* Sessions list */}
       {loading ? (
-        <div className="rounded-xl bg-white p-8 text-center text-gray-500 shadow-sm">
+        <div className="rounded-xl bg-white dark:bg-gray-800 p-8 text-center text-gray-500 dark:text-gray-400 shadow-sm">
           Loading sessions...
         </div>
       ) : sessions.length === 0 ? (
-        <div className="rounded-xl bg-white p-8 text-center shadow-sm">
-          <p className="text-gray-500">No sessions yet. Create one to get started.</p>
+        <div className="rounded-xl bg-white dark:bg-gray-800 p-8 text-center shadow-sm">
+          <p className="text-gray-500 dark:text-gray-400">No sessions yet. Create one to get started.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {sessions.map((session) => (
-            <div key={session.id} className="rounded-xl bg-white p-4 shadow-sm sm:p-5">
+            <div key={session.id} className="rounded-xl bg-white dark:bg-gray-800 p-4 shadow-sm sm:p-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-medium text-gray-900 truncate">
+                    <h3 className="font-medium text-gray-900 dark:text-white truncate">
                       {session.clientName || session.externalUserId || 'Unnamed client'}
                     </h3>
                     <span
                       className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
                         session.status === 'COMPLETED'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-yellow-100 text-yellow-700'
+                          ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400'
+                          : 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-400'
                       }`}
                     >
                       {session.status === 'COMPLETED' ? 'Complete' : `${session.progress}%`}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-500 truncate">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
                     {session.address || 'No address yet'}
                     {session.postcode && `, ${session.postcode}`}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
                     {session.clientEmail && `${session.clientEmail} · `}
                     Created {new Date(session.createdAt).toLocaleDateString()}
                   </p>
@@ -146,14 +146,14 @@ export default function DashboardPage() {
                   {session.status === 'ACTIVE' && session.clientEmail && (
                     <button
                       onClick={() => sendReminder(session.id)}
-                      className="rounded-lg border px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                      className="rounded-lg border dark:border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
                       Send Reminder
                     </button>
                   )}
                   <Link
                     href={`/dashboard/sessions/${session.id}`}
-                    className="rounded-lg border px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50"
+                    className="rounded-lg border dark:border-gray-700 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30"
                   >
                     View
                   </Link>
@@ -164,7 +164,7 @@ export default function DashboardPage() {
                       );
                       alert('Form link copied to clipboard');
                     }}
-                    className="rounded-lg border px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                    className="rounded-lg border dark:border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
                     Copy Link
                   </button>
@@ -173,7 +173,7 @@ export default function DashboardPage() {
               {/* Progress bar */}
               {session.status === 'ACTIVE' && (
                 <div className="mt-3">
-                  <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
+                  <div className="h-1.5 w-full rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
                     <div
                       className="h-full rounded-full bg-blue-500 transition-all"
                       style={{ width: `${session.progress}%` }}
@@ -247,14 +247,14 @@ function CreateSessionModal({ onClose, onCreated }: { onClose: () => void; onCre
   if (result) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Session Created</h3>
-          <p className="text-sm text-gray-600 mb-3">Share this link with your client:</p>
+        <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Session Created</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Share this link with your client:</p>
           <div className="flex gap-2">
             <input
               readOnly
               value={result.formUrl}
-              className="flex-1 rounded-lg border bg-gray-50 px-3 py-2 text-sm"
+              className="flex-1 rounded-lg border dark:border-gray-600 bg-gray-50 dark:bg-gray-900 px-3 py-2 text-sm dark:text-white"
             />
             <button
               onClick={() => {
@@ -268,7 +268,7 @@ function CreateSessionModal({ onClose, onCreated }: { onClose: () => void; onCre
           </div>
           <button
             onClick={onCreated}
-            className="mt-4 w-full rounded-lg border py-2 text-sm font-medium text-gray-600"
+            className="mt-4 w-full rounded-lg border dark:border-gray-700 py-2 text-sm font-medium text-gray-600 dark:text-gray-300"
           >
             Done
           </button>
@@ -279,85 +279,85 @@ function CreateSessionModal({ onClose, onCreated }: { onClose: () => void; onCre
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl my-auto" onClick={e => e.stopPropagation()}>
-        <h3 className="text-lg font-bold text-gray-900 mb-4">Create New Session</h3>
+      <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl my-auto" onClick={e => e.stopPropagation()}>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Create New Session</h3>
         {error && (
-          <div className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+          <div className="mb-4 rounded-lg bg-red-50 dark:bg-red-900/30 px-3 py-2 text-sm text-red-700 dark:text-red-400">{error}</div>
         )}
         <div className="space-y-4">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Property</p>
+          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Property</p>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Property Address <span className="text-red-400">*</span></label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Property Address <span className="text-red-400">*</span></label>
             <input
               value={propertyAddress}
               onChange={e => setPropertyAddress(e.target.value)}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
+              className="w-full rounded-lg border dark:border-gray-600 px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
               placeholder="e.g. 42 Acacia Avenue, London"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Postcode <span className="text-red-400">*</span></label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Postcode <span className="text-red-400">*</span></label>
             <input
               value={propertyPostcode}
               onChange={e => setPropertyPostcode(e.target.value)}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
+              className="w-full rounded-lg border dark:border-gray-600 px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
               placeholder="e.g. SW1A 1AA"
             />
           </div>
 
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide pt-2">Seller</p>
+          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide pt-2">Seller</p>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Seller Name</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Seller Name</label>
             <input
               value={sellerName}
               onChange={e => setSellerName(e.target.value)}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
+              className="w-full rounded-lg border dark:border-gray-600 px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
               placeholder="e.g. Jane Doe"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Seller Email</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Seller Email</label>
             <input
               value={sellerEmail}
               onChange={e => setSellerEmail(e.target.value)}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
+              className="w-full rounded-lg border dark:border-gray-600 px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
               placeholder="e.g. jane@example.com"
               type="email"
             />
           </div>
 
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide pt-2">Your Details</p>
+          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide pt-2">Your Details</p>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Client Name</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Client Name</label>
             <input
               value={clientName}
               onChange={e => setClientName(e.target.value)}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
+              className="w-full rounded-lg border dark:border-gray-600 px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
               placeholder="e.g. John Smith"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Client Email</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Client Email</label>
             <input
               value={clientEmail}
               onChange={e => setClientEmail(e.target.value)}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
+              className="w-full rounded-lg border dark:border-gray-600 px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
               placeholder="e.g. john@example.com"
               type="email"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Your Reference ID (optional)</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Your Reference ID (optional)</label>
             <input
               value={externalUserId}
               onChange={e => setExternalUserId(e.target.value)}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
+              className="w-full rounded-lg border dark:border-gray-600 px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
               placeholder="e.g. CRM-12345"
             />
           </div>
         </div>
         <div className="mt-6 flex gap-3">
-          <button onClick={onClose} className="flex-1 rounded-lg border py-2 text-sm font-medium text-gray-600">
+          <button onClick={onClose} className="flex-1 rounded-lg border dark:border-gray-700 py-2 text-sm font-medium text-gray-600 dark:text-gray-300">
             Cancel
           </button>
           <button

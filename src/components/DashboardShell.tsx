@@ -38,27 +38,27 @@ export default function DashboardShell({ children }: DashboardShellProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Top nav */}
-      <header className="sticky top-0 z-30 border-b bg-white shadow-sm">
+      <header className="sticky top-0 z-30 border-b dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-4">
             <Link href="/dashboard" className="text-xl font-bold text-blue-600">
               PIF Generator
             </Link>
-            <span className="hidden text-sm text-gray-400 sm:inline">|</span>
-            <span className="hidden text-sm text-gray-600 sm:inline">{companyName}</span>
+            <span className="hidden text-sm text-gray-400 dark:text-gray-500 sm:inline">|</span>
+            <span className="hidden text-sm text-gray-600 dark:text-gray-300 sm:inline">{companyName}</span>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={handleLogout}
-              className="hidden rounded-lg border px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 sm:block"
+              className="hidden rounded-lg border dark:border-gray-700 px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 sm:block"
             >
               Log out
             </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="rounded-lg border p-2 sm:hidden"
+              className="rounded-lg border dark:border-gray-700 p-2 sm:hidden"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -74,7 +74,7 @@ export default function DashboardShell({ children }: DashboardShellProps) {
           <nav
             className={`${
               mobileMenuOpen
-                ? 'fixed inset-0 z-40 bg-white p-4 pt-16'
+                ? 'fixed inset-0 z-40 bg-white dark:bg-gray-900 p-4 pt-16'
                 : 'hidden'
             } sm:block sm:w-48 sm:shrink-0`}
           >
@@ -96,8 +96,8 @@ export default function DashboardShell({ children }: DashboardShellProps) {
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                     pathname === item.href
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-gray-600 hover:bg-gray-100'
+                      ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 >
                   <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -107,10 +107,10 @@ export default function DashboardShell({ children }: DashboardShellProps) {
                 </Link>
               ))}
             </div>
-            <div className="mt-4 pt-4 border-t sm:hidden">
+            <div className="mt-4 pt-4 border-t dark:border-gray-700 sm:hidden">
               <button
                 onClick={handleLogout}
-                className="w-full rounded-lg border px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                className="w-full rounded-lg border dark:border-gray-700 px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 Log out
               </button>

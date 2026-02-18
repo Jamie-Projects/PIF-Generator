@@ -66,19 +66,19 @@ export default function WebhooksPage() {
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-gray-900 mb-4">Webhooks</h2>
-      <p className="text-sm text-gray-500 mb-6">
+      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Webhooks</h2>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
         Get notified when a form session is completed. We&apos;ll send a POST request to your URL with the session details.
       </p>
 
       {/* New secret notification */}
       {newSecret && (
-        <div className="rounded-xl bg-yellow-50 border border-yellow-200 p-4 mb-6">
-          <p className="text-sm font-medium text-yellow-800 mb-1">Webhook secret (save this, it won&apos;t be shown again):</p>
-          <code className="text-xs break-all text-yellow-700">{newSecret}</code>
+        <div className="rounded-xl bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 p-4 mb-6">
+          <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300 mb-1">Webhook secret (save this, it won&apos;t be shown again):</p>
+          <code className="text-xs break-all text-yellow-700 dark:text-yellow-300">{newSecret}</code>
           <button
             onClick={() => setNewSecret(null)}
-            className="mt-2 block text-xs text-yellow-600 underline"
+            className="mt-2 block text-xs text-yellow-600 dark:text-yellow-400 underline"
           >
             Dismiss
           </button>
@@ -86,14 +86,14 @@ export default function WebhooksPage() {
       )}
 
       {/* Create */}
-      <div className="rounded-xl bg-white p-5 shadow-sm mb-6">
-        <h3 className="text-sm font-medium text-gray-700 mb-3">Add Webhook</h3>
+      <div className="rounded-xl bg-white dark:bg-gray-800 p-5 shadow-sm mb-6">
+        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Add Webhook</h3>
         <div className="flex gap-2">
           <input
             value={url}
             onChange={e => setUrl(e.target.value)}
             placeholder="https://your-server.com/webhook"
-            className="flex-1 rounded-lg border px-3 py-2 text-sm"
+            className="flex-1 rounded-lg border dark:border-gray-700 px-3 py-2 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             type="url"
           />
           <button
@@ -108,23 +108,23 @@ export default function WebhooksPage() {
 
       {/* List */}
       {loading ? (
-        <p className="text-gray-500">Loading...</p>
+        <p className="text-gray-500 dark:text-gray-400">Loading...</p>
       ) : webhooks.length === 0 ? (
-        <p className="text-gray-500">No webhooks configured.</p>
+        <p className="text-gray-500 dark:text-gray-400">No webhooks configured.</p>
       ) : (
         <div className="space-y-3">
           {webhooks.map((wh) => (
-            <div key={wh.id} className="rounded-xl bg-white p-4 shadow-sm">
+            <div key={wh.id} className="rounded-xl bg-white dark:bg-gray-800 p-4 shadow-sm">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="font-medium text-gray-900 break-all">{wh.url}</p>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="font-medium text-gray-900 dark:text-white break-all">{wh.url}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                     Events: {wh.events.join(', ')} · Created {new Date(wh.createdAt).toLocaleDateString()}
                   </p>
                 </div>
                 <button
                   onClick={() => deleteWebhook(wh.id)}
-                  className="shrink-0 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                  className="shrink-0 rounded-lg border border-red-200 dark:border-red-800 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
                 >
                   Delete
                 </button>

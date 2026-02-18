@@ -63,21 +63,21 @@ export default function ApiKeysPage() {
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-gray-900 mb-4">API Keys</h2>
-      <p className="text-sm text-gray-500 mb-6">
+      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">API Keys</h2>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
         Use API keys to authenticate requests to the PIF Generator API.
-        Include the key in the <code className="bg-gray-100 px-1 rounded">Authorization: ApiKey your_key_here</code> header.
+        Include the key in the <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">Authorization: ApiKey your_key_here</code> header.
       </p>
 
       {/* Create new key */}
-      <div className="rounded-xl bg-white p-5 shadow-sm mb-6">
-        <h3 className="text-sm font-medium text-gray-700 mb-3">Create New Key</h3>
+      <div className="rounded-xl bg-white dark:bg-gray-800 p-5 shadow-sm mb-6">
+        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Create New Key</h3>
         <div className="flex gap-2">
           <input
             value={newKeyName}
             onChange={e => setNewKeyName(e.target.value)}
             placeholder="Key name (e.g. Production)"
-            className="flex-1 rounded-lg border px-3 py-2 text-sm"
+            className="flex-1 rounded-lg border dark:border-gray-700 px-3 py-2 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
           />
           <button
             onClick={createKey}
@@ -91,18 +91,18 @@ export default function ApiKeysPage() {
 
       {/* Keys list */}
       {loading ? (
-        <p className="text-gray-500">Loading...</p>
+        <p className="text-gray-500 dark:text-gray-400">Loading...</p>
       ) : keys.length === 0 ? (
-        <p className="text-gray-500">No API keys yet.</p>
+        <p className="text-gray-500 dark:text-gray-400">No API keys yet.</p>
       ) : (
         <div className="space-y-3">
           {keys.map((apiKey) => (
-            <div key={apiKey.id} className="rounded-xl bg-white p-4 shadow-sm">
+            <div key={apiKey.id} className="rounded-xl bg-white dark:bg-gray-800 p-4 shadow-sm">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="font-medium text-gray-900">{apiKey.name}</p>
-                  <code className="text-xs text-gray-500 break-all">{apiKey.key}</code>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="font-medium text-gray-900 dark:text-white">{apiKey.name}</p>
+                  <code className="text-xs text-gray-500 dark:text-gray-400 break-all">{apiKey.key}</code>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                     Created {new Date(apiKey.createdAt).toLocaleDateString()}
                     {apiKey.lastUsedAt && ` · Last used ${new Date(apiKey.lastUsedAt).toLocaleDateString()}`}
                   </p>
@@ -113,13 +113,13 @@ export default function ApiKeysPage() {
                       navigator.clipboard.writeText(apiKey.key);
                       alert('Copied!');
                     }}
-                    className="rounded-lg border px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                    className="rounded-lg border dark:border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
                     Copy
                   </button>
                   <button
                     onClick={() => deleteKey(apiKey.id)}
-                    className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                    className="rounded-lg border border-red-200 dark:border-red-800 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
                   >
                     Delete
                   </button>
