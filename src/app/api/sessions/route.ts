@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { Prisma } from '@/generated/prisma';
+import { Prisma } from '@/generated/prisma/client';
 import { authenticateRequest, generateSessionToken } from '@/lib/auth';
 import { BASPI_SECTIONS } from '@/lib/baspiSchema';
 import {
