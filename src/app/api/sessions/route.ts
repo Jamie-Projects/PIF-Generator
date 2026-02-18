@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@/generated/prisma';
 import { authenticateRequest, generateSessionToken } from '@/lib/auth';
 import { BASPI_SECTIONS } from '@/lib/baspiSchema';
 import {
@@ -157,7 +158,7 @@ export async function POST(request: Request) {
             prisma.formSection.update({
               where: { id: sectionMap.get(key)! },
               data: {
-                data: data as Record<string, unknown>,
+                data: data as Prisma.InputJsonValue,
                 status: 'IN_PROGRESS',
                 lastSavedAt: new Date(),
               },
