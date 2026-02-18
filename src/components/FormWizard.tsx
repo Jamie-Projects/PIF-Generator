@@ -64,7 +64,10 @@ export default function FormWizard({
 
   const currentSectionDef = BASPI_SECTIONS[currentStep];
   const currentSection = sections.find(s => s.sectionKey === currentSectionDef?.key);
-  const sectionData = (currentSection?.data as Record<string, unknown>) || {};
+  const sectionData = useMemo(
+    () => (currentSection?.data as Record<string, unknown>) || {},
+    [currentSection]
+  );
 
   // Get visible fields (respecting showWhen conditions)
   const visibleFields = useMemo(() => {

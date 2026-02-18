@@ -1,4 +1,4 @@
-import { BASPI_SECTIONS, getSectionByKey } from './baspiSchema';
+import { getSectionByKey } from './baspiSchema';
 
 export type RiskLevel = 'red' | 'amber' | 'green';
 
