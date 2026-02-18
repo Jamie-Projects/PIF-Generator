@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface PrepopulationConsentProps {
   postcode: string;
@@ -23,15 +23,19 @@ export default function PrepopulationConsent({ postcode, onAccept, onSkip }: Pre
   const [prepopulated, setPrepopulated] = useState<Record<string, Record<string, unknown>>>({});
   const [error, setError] = useState('');
   const [totalFields] = useState(150); // approximate total form fields
+  const hasStarted = useRef(false);
 
   // Start searching on mount
-  useState(() => {
+  useEffect(() => {
+    if (hasStarted.current) return;
+    hasStarted.current = true;
     if (postcode) {
       searchAddresses();
     } else {
-      setStage('skipped');
+      onSkip();
     }
-  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function searchAddresses() {
     try {
