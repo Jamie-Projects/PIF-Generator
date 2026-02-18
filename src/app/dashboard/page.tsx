@@ -507,6 +507,9 @@ function CreateSessionModal({ onClose, onCreated }: { onClose: () => void; onCre
           </div>
 
           <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide pt-2">Seller</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 -mt-2">
+            The person who owns and is selling the property. They&apos;ll receive the form link to fill in.
+          </p>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Seller Name</label>
             <input
@@ -527,7 +530,23 @@ function CreateSessionModal({ onClose, onCreated }: { onClose: () => void; onCre
             />
           </div>
 
-          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide pt-2">Your Details</p>
+          <div className="flex items-center justify-between pt-2">
+            <div>
+              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Client</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                Your client on this matter. Usually the seller, but sometimes a different party (e.g. a relative, executor, or company).
+              </p>
+            </div>
+          </div>
+          {(sellerName || sellerEmail) && (clientName !== sellerName || clientEmail !== sellerEmail) && (
+            <button
+              type="button"
+              onClick={() => { setClientName(sellerName); setClientEmail(sellerEmail); }}
+              className="w-full rounded-lg border border-dashed border-blue-300 dark:border-blue-700 px-3 py-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+            >
+              Same as seller — use {sellerName || 'seller details'}
+            </button>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Client Name</label>
             <input
