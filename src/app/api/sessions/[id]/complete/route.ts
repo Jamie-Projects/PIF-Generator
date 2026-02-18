@@ -28,7 +28,7 @@ export async function POST(
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
-    // Mark session as completed
+    // Mark session and all sections as completed
     await prisma.formSession.update({
       where: { id: session.id },
       data: {
@@ -36,6 +36,13 @@ export async function POST(
         completedAt: new Date(),
       },
     });
+
+    if (session.propertyForm) {
+      await prisma.formSection.updateMany({
+        where: { formId: session.propertyForm.id },
+        data: { status: 'COMPLETED' },
+      });
+    }
 
     // Fire webhooks
     await fireWebhooks(session.companyId, 'session.completed', {

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { BASPI_SECTIONS } from '@/lib/baspiSchema';
+import ConveyancerSummary from '@/components/ConveyancerSummary';
 
 interface SessionDetail {
   id: string;
@@ -96,7 +97,7 @@ export default function SessionDetailPage() {
 
   const totalSections = BASPI_SECTIONS.length;
   const completedSections = session.propertyForm?.sections.filter(s => s.status === 'COMPLETED').length ?? 0;
-  const progress = Math.round((completedSections / totalSections) * 100);
+  const progress = session.status === 'COMPLETED' ? 100 : Math.round((completedSections / totalSections) * 100);
 
   return (
     <div>
@@ -179,6 +180,22 @@ export default function SessionDetailPage() {
           </button>
         </div>
       </div>
+
+      {/* Conveyancer Summary — only for completed sessions */}
+      {session.status === 'COMPLETED' && session.propertyForm?.sections && (
+        <div className="rounded-xl bg-white shadow-sm py-6 mb-6">
+          <ConveyancerSummary
+            sections={session.propertyForm.sections.map(s => ({
+              sectionKey: s.sectionKey,
+              data: s.data,
+            }))}
+            propertyAddress={
+              [session.propertyForm.address, session.propertyForm.postcode].filter(Boolean).join(', ')
+            }
+            sellerName={session.propertyForm.sellerName}
+          />
+        </div>
+      )}
 
       {/* Sections detail */}
       <div className="space-y-3">
