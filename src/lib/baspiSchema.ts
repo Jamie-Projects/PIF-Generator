@@ -416,7 +416,7 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
     description: 'Every property for sale needs an Energy Performance Certificate (EPC). It rates how energy-efficient your home is from A (best) to G (worst). You can find your EPC at epcregister.com.',
     part: 'B',
     fields: [
-      { key: 'epc_rating', label: 'Current EPC Rating', type: 'select', required: true, helpText: 'A to G rating showing the energy efficiency of the property. A is the most efficient, G is the least. You can look up your property\'s rating for free at epcregister.com.', options: [
+      { key: 'epc_rating', label: 'Current EPC Rating', type: 'select', required: true, helpText: 'A = most efficient, G = least. Check epcregister.com.', options: [
         { value: 'A', label: 'A' },
         { value: 'B', label: 'B' },
         { value: 'C', label: 'C' },
@@ -426,9 +426,9 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
         { value: 'G', label: 'G' },
         { value: 'exempt', label: 'Exempt' },
       ]},
-      { key: 'epc_certificate_number', label: 'EPC Certificate Number', type: 'text', helpText: 'A unique reference number on your EPC certificate. You can find this on the certificate itself or at epcregister.com.' },
-      { key: 'epc_expiry_date', label: 'EPC Expiry Date', type: 'date', helpText: 'EPCs are valid for 10 years from the date they were issued.' },
-      { key: 'has_green_deal', label: 'Is there a Green Deal plan on the property?', type: 'boolean', helpText: 'The Green Deal was a government loan scheme for energy improvements (like insulation or new boilers). The loan is attached to the property, not the person — so the buyer would take over the repayments. Most properties don\'t have one.' },
+      { key: 'epc_certificate_number', label: 'EPC Certificate Number', type: 'text', helpText: 'Found on your certificate or at epcregister.com.' },
+      { key: 'epc_expiry_date', label: 'EPC Expiry Date', type: 'date', helpText: 'Valid for 10 years from issue.' },
+      { key: 'has_green_deal', label: 'Is there a Green Deal plan on the property?', type: 'boolean', helpText: 'A government energy loan attached to the property, not the person.' },
       { key: 'green_deal_details', label: 'Please give details of the Green Deal plan', type: 'textarea', showWhen: { field: 'has_green_deal', value: true } },
     ],
   },
@@ -438,9 +438,9 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
     description: 'If any work has been done on the property, there may be guarantees or warranties that can be passed on to the buyer. Dig out any paperwork you have — it can add value to your sale.',
     part: 'B',
     fields: [
-      { key: 'has_new_build_warranty', label: 'Is there a new build warranty (e.g. NHBC, Premier, LABC)?', type: 'boolean', required: true, helpText: 'If the property was built within the last 10 years, it probably came with a new-build warranty (usually from NHBC). This protects against structural defects. Check your paperwork from when you bought the property.' },
+      { key: 'has_new_build_warranty', label: 'Is there a new build warranty (e.g. NHBC, Premier, LABC)?', type: 'boolean', required: true, helpText: 'Common if built in the last 10 years.' },
       { key: 'new_build_warranty_details', label: 'Provider and expiry date', type: 'textarea', showWhen: { field: 'has_new_build_warranty', value: true } },
-      { key: 'has_damp_guarantee', label: 'Is there a damp-proofing guarantee?', type: 'boolean', helpText: 'If damp-proofing work was done (injecting chemicals into walls to stop damp rising), it usually comes with a long guarantee (e.g. 20-30 years).' },
+      { key: 'has_damp_guarantee', label: 'Is there a damp-proofing guarantee?', type: 'boolean', helpText: 'Usually comes with a 20-30 year guarantee.' },
       { key: 'damp_guarantee_details', label: 'Please give details', type: 'textarea', showWhen: { field: 'has_damp_guarantee', value: true } },
       { key: 'has_timber_guarantee', label: 'Is there a timber treatment guarantee?', type: 'boolean', helpText: 'If timber was treated for woodworm or rot, there may be a guarantee from the treatment company.' },
       { key: 'timber_guarantee_details', label: 'Please give details', type: 'textarea', showWhen: { field: 'has_timber_guarantee', value: true } },
