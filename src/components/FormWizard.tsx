@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { BASPI_SECTIONS, FormField } from '@/lib/baspiSchema';
 import QuestionField from './QuestionField';
 import SaveIndicator from './SaveIndicator';
+import ConveyancerSummary from './ConveyancerSummary';
 
 interface SectionData {
   id: string;
@@ -236,9 +237,20 @@ export default function FormWizard({
   };
 
   if (isCompleted) {
+    const riskSections = sections.map(s => ({
+      sectionKey: s.sectionKey,
+      data: s.data as Record<string, unknown>,
+    }));
+    const address = (() => {
+      const propData = sections.find(s => s.sectionKey === 'property_details')?.data as Record<string, unknown> | undefined;
+      return [propData?.address_line1, propData?.city, propData?.postcode].filter(Boolean).join(', ');
+    })();
+    const seller = (sections.find(s => s.sectionKey === 'seller_details')?.data as Record<string, unknown> | undefined)?.seller_full_name as string || '';
+
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
-        <div className="max-w-sm rounded-2xl bg-white p-8 text-center shadow-xl">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-8">
+        {/* Success header */}
+        <div className="mx-auto max-w-lg px-4 text-center mb-8">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
             <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -248,6 +260,15 @@ export default function FormWizard({
           <p className="text-gray-600">
             Your Property Information Form has been submitted to <strong>{companyName}</strong>. Thank you!
           </p>
+        </div>
+
+        {/* Conveyancer Summary */}
+        <div className="mx-auto max-w-lg bg-white rounded-2xl shadow-xl py-6 mb-6">
+          <ConveyancerSummary
+            sections={riskSections}
+            propertyAddress={address}
+            sellerName={seller}
+          />
         </div>
       </div>
     );
