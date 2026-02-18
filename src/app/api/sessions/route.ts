@@ -71,7 +71,14 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { externalUserId, clientName, clientEmail } = body;
+    const { externalUserId, clientName, clientEmail, propertyAddress, propertyPostcode, sellerName, sellerEmail } = body;
+
+    if (!propertyAddress || !propertyPostcode) {
+      return NextResponse.json(
+        { error: 'propertyAddress and propertyPostcode are required' },
+        { status: 400 }
+      );
+    }
 
     const token = generateSessionToken();
 
@@ -84,6 +91,10 @@ export async function POST(request: Request) {
         clientEmail: clientEmail || null,
         propertyForm: {
           create: {
+            address: propertyAddress,
+            postcode: propertyPostcode,
+            sellerName: sellerName || '',
+            sellerEmail: sellerEmail || '',
             sections: {
               create: BASPI_SECTIONS.map(section => ({
                 sectionKey: section.key,
@@ -102,6 +113,10 @@ export async function POST(request: Request) {
       sessionId: session.id,
       token: session.token,
       formUrl,
+      property: {
+        address: propertyAddress,
+        postcode: propertyPostcode,
+      },
     }, { status: 201 });
   } catch (error) {
     console.error('Create session error:', error);

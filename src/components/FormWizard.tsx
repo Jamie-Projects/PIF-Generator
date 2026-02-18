@@ -39,6 +39,7 @@ export default function FormWizard({
   sessionId,
   companyName,
   initialStep,
+  form,
   sections: initialSections,
   isCompleted: initialIsCompleted,
 }: FormWizardProps) {
@@ -249,6 +250,42 @@ export default function FormWizard({
     }
   };
 
+  // Seed address from company-provided form details into property_details section
+  const seedAddressData = useCallback(async () => {
+    if (!form.address && !form.postcode) return;
+    const propSection = sections.find(s => s.sectionKey === 'property_details');
+    if (!propSection) return;
+    const existing = propSection.data as Record<string, unknown>;
+    // Only seed if not already filled
+    if (existing.postcode) return;
+
+    // Parse address into line1 and city
+    const parts = form.address.split(',').map(s => s.trim());
+    const seedData: Record<string, unknown> = {
+      ...existing,
+      postcode: form.postcode,
+    };
+    if (parts[0]) seedData.address_line1 = parts[0];
+    if (parts.length > 1) seedData.city = parts[parts.length - 1];
+    if (form.sellerName) {
+      // Also seed seller details
+      const sellerSection = sections.find(s => s.sectionKey === 'seller_details');
+      if (sellerSection) {
+        const sellerData: Record<string, unknown> = { ...(sellerSection.data as Record<string, unknown>), seller_full_name: form.sellerName };
+        if (form.sellerEmail) sellerData.seller_email = form.sellerEmail;
+        setSections(prev => prev.map(s =>
+          s.sectionKey === 'seller_details' ? { ...s, data: sellerData, status: 'IN_PROGRESS' } : s
+        ));
+        await saveSection('seller_details', sellerData, 0);
+      }
+    }
+
+    setSections(prev => prev.map(s =>
+      s.sectionKey === 'property_details' ? { ...s, data: seedData, status: 'IN_PROGRESS' } : s
+    ));
+    await saveSection('property_details', seedData, 0);
+  }, [form, sections, saveSection]);
+
   const handlePrepopulationAccept = async (prepopulated: Record<string, Record<string, unknown>>) => {
     // Merge prepopulated data into sections
     setSections(prev => prev.map(s => {
@@ -270,17 +307,18 @@ export default function FormWizard({
     setShowPrepopulation(false);
   };
 
+  const handleSkipPrepopulation = async () => {
+    await seedAddressData();
+    setShowPrepopulation(false);
+  };
+
   // Show prepopulation consent flow
   if (showPrepopulation) {
-    // Get postcode from form details or initial section data
-    const propData = sections.find(s => s.sectionKey === 'property_details')?.data as Record<string, unknown> | undefined;
-    const postcode = (propData?.postcode as string) || '';
-
     return (
       <PrepopulationConsent
-        postcode={postcode}
+        postcode={form.postcode}
         onAccept={handlePrepopulationAccept}
-        onSkip={() => setShowPrepopulation(false)}
+        onSkip={handleSkipPrepopulation}
       />
     );
   }
