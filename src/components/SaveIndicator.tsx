@@ -3,9 +3,26 @@
 interface SaveIndicatorProps {
   status: 'idle' | 'saving' | 'saved' | 'error';
   lastSaved?: string | null;
+  compact?: boolean;
 }
 
-export default function SaveIndicator({ status, lastSaved }: SaveIndicatorProps) {
+export default function SaveIndicator({ status, lastSaved, compact }: SaveIndicatorProps) {
+  if (compact) {
+    return (
+      <div className="flex items-center gap-1">
+        {status === 'saving' && (
+          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-yellow-400" />
+        )}
+        {status === 'saved' && (
+          <span className="inline-block h-2 w-2 rounded-full bg-green-400" />
+        )}
+        {status === 'error' && (
+          <span className="inline-block h-2 w-2 rounded-full bg-red-400" />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-2 text-sm">
       {status === 'saving' && (

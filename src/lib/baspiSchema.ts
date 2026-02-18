@@ -9,6 +9,7 @@ export interface FormField {
   options?: { value: string; label: string }[];
   showWhen?: { field: string; value: unknown };
   placeholder?: string;
+  quickPick?: number[];
 }
 
 export interface FormSectionDef {
@@ -29,12 +30,12 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
     description: 'Let\'s start with the basics about your property. This helps the buyer understand exactly what they\'re looking at.',
     part: 'A',
     fields: [
-      { key: 'address_line1', label: 'Address Line 1', type: 'text', required: true, placeholder: 'e.g. 42 Acacia Avenue', helpText: 'The street number and name of your property.' },
-      { key: 'address_line2', label: 'Address Line 2', type: 'text', placeholder: 'e.g. Flat 3', helpText: 'If applicable — a flat number, building name, or any extra address detail.' },
+      { key: 'address_line1', label: 'Address Line 1', type: 'text', required: true, placeholder: 'e.g. 42 Acacia Avenue' },
+      { key: 'address_line2', label: 'Address Line 2', type: 'text', placeholder: 'e.g. Flat 3', helpText: 'Flat number, building name, or extra detail if needed.' },
       { key: 'city', label: 'Town / City', type: 'text', required: true },
       { key: 'county', label: 'County', type: 'text' },
       { key: 'postcode', label: 'Postcode', type: 'text', required: true, placeholder: 'e.g. SW1A 1AA' },
-      { key: 'property_type', label: 'Property Type', type: 'select', required: true, helpText: 'What kind of property is it? If you\'re not sure, "Detached" means a standalone house, "Semi-Detached" shares one wall with a neighbour, and "Terraced" shares walls on both sides.', options: [
+      { key: 'property_type', label: 'Property Type', type: 'select', required: true, helpText: 'Detached = standalone. Semi = shares one wall. Terraced = shares both.', options: [
         { value: 'detached', label: 'Detached House' },
         { value: 'semi_detached', label: 'Semi-Detached House' },
         { value: 'terraced', label: 'Terraced House' },
@@ -45,20 +46,20 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
         { value: 'other', label: 'Other' },
       ]},
       { key: 'property_type_other', label: 'Please specify property type', type: 'text', showWhen: { field: 'property_type', value: 'other' } },
-      { key: 'tenure', label: 'Tenure', type: 'select', required: true, helpText: 'This is about how you own the property. "Freehold" means you own the building and the land. "Leasehold" means you own the right to live there for a set number of years (common with flats). Check your title deeds if you\'re unsure.', options: [
+      { key: 'tenure', label: 'Tenure', type: 'select', required: true, helpText: 'Freehold = you own it all. Leasehold = you lease it.', options: [
         { value: 'freehold', label: 'Freehold' },
         { value: 'leasehold', label: 'Leasehold' },
         { value: 'share_of_freehold', label: 'Share of Freehold' },
         { value: 'commonhold', label: 'Commonhold' },
       ]},
-      { key: 'num_bedrooms', label: 'Number of Bedrooms', type: 'number', required: true },
-      { key: 'num_bathrooms', label: 'Number of Bathrooms', type: 'number', helpText: 'Include all bathrooms, shower rooms, and en-suites.' },
-      { key: 'num_stories', label: 'Number of Stories', type: 'number', helpText: 'How many floors does the property have? A ground floor only counts as 1.' },
-      { key: 'year_built', label: 'Approximate Year Built', type: 'text', placeholder: 'e.g. 1920', helpText: 'A rough year is fine — you don\'t need to know the exact date.' },
-      { key: 'has_commercial', label: 'Does the property include any commercial use?', type: 'boolean', helpText: 'For example, is any part of the property used as a shop, office, or business premises?' },
+      { key: 'num_bedrooms', label: 'Number of Bedrooms', type: 'number', required: true, quickPick: [1, 2, 3, 4, 5] },
+      { key: 'num_bathrooms', label: 'Number of Bathrooms', type: 'number', helpText: 'Include en-suites and shower rooms.', quickPick: [1, 2, 3, 4] },
+      { key: 'num_stories', label: 'Number of Stories', type: 'number', quickPick: [1, 2, 3] },
+      { key: 'year_built', label: 'Approximate Year Built', type: 'text', placeholder: 'e.g. 1920', helpText: 'A rough year is fine.' },
+      { key: 'has_commercial', label: 'Does the property include any commercial use?', type: 'boolean', helpText: 'Any part used as a shop or office?' },
       { key: 'commercial_details', label: 'Please describe the commercial use', type: 'textarea', showWhen: { field: 'has_commercial', value: true } },
-      { key: 'step_free_street', label: 'Is there step-free access from the street?', type: 'boolean', helpText: 'Can someone get from the street to the front door without going up or down any steps?' },
-      { key: 'step_free_throughout', label: 'Is there step-free access throughout the property?', type: 'boolean', helpText: 'Can someone move between all rooms without using stairs or steps?' },
+      { key: 'step_free_street', label: 'Is there step-free access from the street?', type: 'boolean', helpText: 'No steps between the street and front door?' },
+      { key: 'step_free_throughout', label: 'Is there step-free access throughout the property?', type: 'boolean', helpText: 'No stairs or steps between rooms?' },
     ],
   },
   {
@@ -67,12 +68,12 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
     description: 'We need some details about you (and anyone else selling the property). This is used for the legal paperwork.',
     part: 'A',
     fields: [
-      { key: 'seller_full_name', label: 'Full Name (Seller 1)', type: 'text', required: true, helpText: 'Your full legal name as it appears on the property title deeds.' },
+      { key: 'seller_full_name', label: 'Full Name (Seller 1)', type: 'text', required: true, helpText: 'As it appears on the title deeds.' },
       { key: 'seller_email', label: 'Email Address', type: 'text', required: true },
       { key: 'seller_phone', label: 'Phone Number', type: 'text' },
-      { key: 'seller2_full_name', label: 'Full Name (Seller 2, if applicable)', type: 'text', helpText: 'If the property is owned jointly, enter the other owner\'s name here.' },
+      { key: 'seller2_full_name', label: 'Full Name (Seller 2, if applicable)', type: 'text', helpText: 'The other owner, if jointly owned.' },
       { key: 'seller2_email', label: 'Email Address (Seller 2)', type: 'text' },
-      { key: 'seller_capacity', label: 'Are you selling in any special capacity?', type: 'select', helpText: 'Most people sell as the owner. "Personal Representative" means you\'re selling on behalf of someone who has died. "Trustee" or "Attorney" means you\'re acting on behalf of someone else legally.', options: [
+      { key: 'seller_capacity', label: 'Are you selling in any special capacity?', type: 'select', helpText: 'Most people sell as "Owner". Other options are for legal representatives.', options: [
         { value: 'owner', label: 'Owner' },
         { value: 'personal_representative', label: 'Personal Representative' },
         { value: 'trustee', label: 'Trustee' },
@@ -88,13 +89,13 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
     description: 'Buyers need to know about any disagreements or problems with neighbours or the local area. Be honest — it\'s a legal requirement to share this information.',
     part: 'A',
     fields: [
-      { key: 'has_neighbour_disputes', label: 'Have there been any disputes or complaints with neighbours?', type: 'boolean', required: true, helpText: 'This includes any disagreement, even if it was resolved. For example: noise complaints, parking issues, fence disagreements, or boundary arguments.' },
-      { key: 'neighbour_dispute_details', label: 'Please give details of the dispute/complaint', type: 'textarea', showWhen: { field: 'has_neighbour_disputes', value: true }, helpText: 'Describe what happened, when, and how (or if) it was resolved.' },
-      { key: 'has_legal_action', label: 'Has any legal action been taken against the property or by the property owner?', type: 'boolean', required: true, helpText: 'This means any court cases, solicitor letters, or formal legal proceedings related to the property.' },
+      { key: 'has_neighbour_disputes', label: 'Have there been any disputes or complaints with neighbours?', type: 'boolean', required: true, helpText: 'Include any disagreement, even if resolved.' },
+      { key: 'neighbour_dispute_details', label: 'Please give details of the dispute/complaint', type: 'textarea', showWhen: { field: 'has_neighbour_disputes', value: true }, helpText: 'What happened, when, and was it resolved?' },
+      { key: 'has_legal_action', label: 'Has any legal action been taken against the property or by the property owner?', type: 'boolean', required: true, helpText: 'Court cases, solicitor letters, or legal proceedings.' },
       { key: 'legal_action_details', label: 'Please give details of the legal action', type: 'textarea', showWhen: { field: 'has_legal_action', value: true } },
-      { key: 'has_antisocial_behaviour', label: 'Are you aware of any anti-social behaviour in the area?', type: 'boolean', required: true, helpText: 'Anti-social behaviour means things like persistent noise, vandalism, harassment, or other disruptive activity in the neighbourhood.' },
+      { key: 'has_antisocial_behaviour', label: 'Are you aware of any anti-social behaviour in the area?', type: 'boolean', required: true, helpText: 'E.g. persistent noise, vandalism, or harassment nearby.' },
       { key: 'antisocial_details', label: 'Please give details', type: 'textarea', showWhen: { field: 'has_antisocial_behaviour', value: true } },
-      { key: 'has_noise_issues', label: 'Are there any noise issues affecting the property?', type: 'boolean', helpText: 'For example: traffic noise, nearby construction, noisy neighbours, pubs, clubs, flight paths, railways, etc.' },
+      { key: 'has_noise_issues', label: 'Are there any noise issues affecting the property?', type: 'boolean', helpText: 'E.g. traffic, construction, flight paths, or railways.' },
       { key: 'noise_details', label: 'Please give details of noise issues', type: 'textarea', showWhen: { field: 'has_noise_issues', value: true } },
     ],
   },
@@ -104,9 +105,9 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
     description: 'Tell us about any building work or changes that have been made to the property. Buyers and their solicitors will need to check that any work had the right permissions.',
     part: 'A',
     fields: [
-      { key: 'has_extensions', label: 'Have any extensions been added to the property?', type: 'boolean', required: true, helpText: 'An extension is any building work that made the property bigger — like a conservatory, extra room, or garage conversion.' },
-      { key: 'extension_details', label: 'Please describe the extensions', type: 'textarea', showWhen: { field: 'has_extensions', value: true }, helpText: 'Describe what was built and roughly when.' },
-      { key: 'extension_approved', label: 'Was planning permission and/or building regulations approval obtained?', type: 'select', showWhen: { field: 'has_extensions', value: true }, helpText: '"Planning permission" is approval from the council to build. "Building regulations" confirms the work meets safety standards. Some small works are "permitted development" and don\'t need planning permission.', options: [
+      { key: 'has_extensions', label: 'Have any extensions been added to the property?', type: 'boolean', required: true, helpText: 'E.g. conservatory, extra room, or garage conversion.' },
+      { key: 'extension_details', label: 'Please describe the extensions', type: 'textarea', showWhen: { field: 'has_extensions', value: true }, helpText: 'What was built and roughly when?' },
+      { key: 'extension_approved', label: 'Was planning permission and/or building regulations approval obtained?', type: 'select', showWhen: { field: 'has_extensions', value: true }, helpText: 'Planning = council approval. Building regs = safety standards.', options: [
         { value: 'yes_both', label: 'Yes - both obtained' },
         { value: 'planning_only', label: 'Planning permission only' },
         { value: 'building_regs_only', label: 'Building regulations only' },
@@ -114,15 +115,15 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
         { value: 'not_required', label: 'Not required (permitted development)' },
         { value: 'unknown', label: 'Unknown' },
       ]},
-      { key: 'has_loft_conversion', label: 'Has a loft conversion been carried out?', type: 'boolean', required: true, helpText: 'A loft conversion is when the attic/loft space has been turned into a usable room.' },
-      { key: 'loft_details', label: 'Please describe and confirm approvals obtained', type: 'textarea', showWhen: { field: 'has_loft_conversion', value: true }, helpText: 'Describe the conversion and say whether planning permission and building regulations approval were obtained.' },
-      { key: 'has_walls_removed', label: 'Have any internal walls been removed?', type: 'boolean', required: true, helpText: 'This includes knocking through between rooms to make an open-plan space. If a wall was load-bearing (holding up the building), special steel beams (RSJs) would have been needed.' },
-      { key: 'walls_removed_details', label: 'Please describe and confirm if structural and approvals obtained', type: 'textarea', showWhen: { field: 'has_walls_removed', value: true }, helpText: 'Say which walls, whether they were structural (load-bearing), and if building regulations sign-off was obtained.' },
-      { key: 'has_other_structural', label: 'Have any other structural changes been made?', type: 'boolean', helpText: 'Any other work that changed the structure of the building — like underpinning, chimney removal, new openings, etc.' },
+      { key: 'has_loft_conversion', label: 'Has a loft conversion been carried out?', type: 'boolean', required: true, helpText: 'Attic turned into a usable room.' },
+      { key: 'loft_details', label: 'Please describe and confirm approvals obtained', type: 'textarea', showWhen: { field: 'has_loft_conversion', value: true }, helpText: 'Describe the work and any approvals obtained.' },
+      { key: 'has_walls_removed', label: 'Have any internal walls been removed?', type: 'boolean', required: true, helpText: 'Includes knocking through for open-plan spaces.' },
+      { key: 'walls_removed_details', label: 'Please describe and confirm if structural and approvals obtained', type: 'textarea', showWhen: { field: 'has_walls_removed', value: true }, helpText: 'Which walls, were they load-bearing, and was approval obtained?' },
+      { key: 'has_other_structural', label: 'Have any other structural changes been made?', type: 'boolean', helpText: 'E.g. underpinning, chimney removal, or new openings.' },
       { key: 'other_structural_details', label: 'Please describe', type: 'textarea', showWhen: { field: 'has_other_structural', value: true } },
-      { key: 'has_significant_repairs', label: 'Have there been any significant repairs or renewals?', type: 'boolean', helpText: 'Major work like a new roof, rewiring, new plumbing, or replacing the damp-proof course. You don\'t need to mention routine decorating or minor repairs.' },
+      { key: 'has_significant_repairs', label: 'Have there been any significant repairs or renewals?', type: 'boolean', helpText: 'E.g. new roof, rewiring, or new plumbing. Not minor repairs.' },
       { key: 'repair_details', label: 'Please describe the repairs/renewals', type: 'textarea', showWhen: { field: 'has_significant_repairs', value: true } },
-      { key: 'has_change_of_use', label: 'Has there been any change of use of the property or any part of it?', type: 'boolean', helpText: 'For example, converting a garage into a bedroom, turning a house into flats, or using part of it as a business.' },
+      { key: 'has_change_of_use', label: 'Has there been any change of use of the property or any part of it?', type: 'boolean', helpText: 'E.g. garage to bedroom, or part used as a business.' },
       { key: 'change_of_use_details', label: 'Please describe', type: 'textarea', showWhen: { field: 'has_change_of_use', value: true } },
     ],
   },
@@ -132,13 +133,13 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
     description: 'Have you received any official letters or notices from the council or other authorities about the property? These are formal documents that could affect the buyer.',
     part: 'A',
     fields: [
-      { key: 'has_planning_notices', label: 'Have you received any planning notices or proposals affecting the property or the area?', type: 'boolean', required: true, helpText: 'These are letters from the local council about nearby building plans, road changes, or development proposals. You might have received one through the post or seen a notice on a lamppost.' },
+      { key: 'has_planning_notices', label: 'Have you received any planning notices or proposals affecting the property or the area?', type: 'boolean', required: true, helpText: 'Council letters about nearby building or development plans.' },
       { key: 'planning_notice_details', label: 'Please give details', type: 'textarea', showWhen: { field: 'has_planning_notices', value: true } },
-      { key: 'has_building_control_notices', label: 'Have you received any building control notices?', type: 'boolean', required: true, helpText: 'Building control notices are official documents about the safety or standards of building work at the property. If you\'ve had work done and it didn\'t pass inspection, that would be relevant here.' },
+      { key: 'has_building_control_notices', label: 'Have you received any building control notices?', type: 'boolean', required: true, helpText: 'Official notices about building safety or failed inspections.' },
       { key: 'building_control_details', label: 'Please give details', type: 'textarea', showWhen: { field: 'has_building_control_notices', value: true } },
-      { key: 'has_environmental_notices', label: 'Have you received any environmental notices (e.g. contamination, flooding)?', type: 'boolean', required: true, helpText: 'For example, official flood warnings, contaminated land notices, or any letters from the Environment Agency.' },
+      { key: 'has_environmental_notices', label: 'Have you received any environmental notices (e.g. contamination, flooding)?', type: 'boolean', required: true, helpText: 'E.g. flood warnings or contaminated land notices.' },
       { key: 'environmental_notice_details', label: 'Please give details', type: 'textarea', showWhen: { field: 'has_environmental_notices', value: true } },
-      { key: 'has_other_notices', label: 'Have you received any other notices or proposals affecting the property?', type: 'boolean', helpText: 'Any other official letters or notices from authorities that relate to the property.' },
+      { key: 'has_other_notices', label: 'Have you received any other notices or proposals affecting the property?', type: 'boolean', helpText: 'Any other official letters from authorities.' },
       { key: 'other_notice_details', label: 'Please give details', type: 'textarea', showWhen: { field: 'has_other_notices', value: true } },
     ],
   },
@@ -148,27 +149,27 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
     description: 'This section covers specific problems that can significantly affect a property\'s value or safety. Don\'t worry if you\'re not sure about some of these — just answer as honestly as you can.',
     part: 'A',
     fields: [
-      { key: 'has_japanese_knotweed', label: 'Is there or has there been Japanese Knotweed at the property?', type: 'boolean', required: true, helpText: 'Japanese Knotweed is an invasive plant with bamboo-like stems and heart-shaped leaves. It grows very fast and can damage buildings and drains. If you\'ve ever seen it or had treatment, say yes.' },
+      { key: 'has_japanese_knotweed', label: 'Is there or has there been Japanese Knotweed at the property?', type: 'boolean', required: true, helpText: 'An invasive plant that can damage buildings.' },
       { key: 'knotweed_details', label: 'Please give details and any treatment plan', type: 'textarea', showWhen: { field: 'has_japanese_knotweed', value: true } },
-      { key: 'has_flooding', label: 'Has the property ever been flooded?', type: 'boolean', required: true, helpText: 'This means any time water came into the property from outside — from rivers, heavy rain, burst pipes outside, or rising groundwater.' },
-      { key: 'flooding_details', label: 'Please describe (when, source, severity)', type: 'textarea', showWhen: { field: 'has_flooding', value: true }, helpText: 'Tell us roughly when it happened, where the water came from, and how bad it was.' },
-      { key: 'has_subsidence', label: 'Has the property been affected by subsidence, heave or landslip?', type: 'boolean', required: true, helpText: 'Subsidence means the ground beneath the property is sinking or moving. Signs include cracks in walls (especially diagonal ones around windows and doors), doors or windows that stick, or uneven floors.' },
+      { key: 'has_flooding', label: 'Has the property ever been flooded?', type: 'boolean', required: true, helpText: 'From rivers, heavy rain, or rising groundwater.' },
+      { key: 'flooding_details', label: 'Please describe (when, source, severity)', type: 'textarea', showWhen: { field: 'has_flooding', value: true } },
+      { key: 'has_subsidence', label: 'Has the property been affected by subsidence, heave or landslip?', type: 'boolean', required: true, helpText: 'Ground sinking or moving beneath the property.' },
       { key: 'subsidence_details', label: 'Please give details', type: 'textarea', showWhen: { field: 'has_subsidence', value: true } },
-      { key: 'has_asbestos', label: 'Are you aware of any asbestos in the property?', type: 'boolean', required: true, helpText: 'Asbestos is a material that was commonly used in buildings before the year 2000. It can be found in roof tiles, pipe insulation, artex ceilings, and floor tiles. It\'s safe if undisturbed, but harmful if broken or drilled into.' },
+      { key: 'has_asbestos', label: 'Are you aware of any asbestos in the property?', type: 'boolean', required: true, helpText: 'Common in pre-2000 buildings. Safe if undisturbed.' },
       { key: 'asbestos_details', label: 'Please describe location and type', type: 'textarea', showWhen: { field: 'has_asbestos', value: true } },
-      { key: 'has_radon', label: 'Is the property in a radon-affected area?', type: 'select', helpText: 'Radon is a natural radioactive gas that comes from the ground. Some areas of the country have higher levels. You can check your area at ukradon.org. If you don\'t know, select "Unknown".', options: [
+      { key: 'has_radon', label: 'Is the property in a radon-affected area?', type: 'select', helpText: 'A natural gas from the ground. Check ukradon.org if unsure.', options: [
         { value: 'yes', label: 'Yes' },
         { value: 'no', label: 'No' },
         { value: 'unknown', label: 'Unknown' },
       ]},
-      { key: 'has_coastal_erosion', label: 'Is the property affected by or at risk of coastal erosion?', type: 'boolean', helpText: 'This is only relevant if your property is near the coast. Coastal erosion means the land is being worn away by the sea.' },
+      { key: 'has_coastal_erosion', label: 'Is the property affected by or at risk of coastal erosion?', type: 'boolean', helpText: 'Only relevant for coastal properties.' },
       { key: 'coastal_erosion_details', label: 'Please give details', type: 'textarea', showWhen: { field: 'has_coastal_erosion', value: true } },
-      { key: 'has_mining', label: 'Is the property in a mining area?', type: 'select', helpText: 'Some parts of the UK were used for coal or other mining. Old mines underground can sometimes affect properties above. If you don\'t know, select "Unknown".', options: [
+      { key: 'has_mining', label: 'Is the property in a mining area?', type: 'select', helpText: 'Old mines can affect properties above. Select "Unknown" if unsure.', options: [
         { value: 'yes', label: 'Yes' },
         { value: 'no', label: 'No' },
         { value: 'unknown', label: 'Unknown' },
       ]},
-      { key: 'has_listed_building', label: 'Is the property listed or in a conservation area?', type: 'boolean', helpText: 'A "listed building" is one that is officially recognised as having special historical or architectural interest. A "conservation area" is a neighbourhood with extra planning rules to protect its character. Both can limit what changes you can make.' },
+      { key: 'has_listed_building', label: 'Is the property listed or in a conservation area?', type: 'boolean', helpText: 'Both can limit what changes you can make.' },
       { key: 'listed_details', label: 'Please give details (grade, restrictions)', type: 'textarea', showWhen: { field: 'has_listed_building', value: true } },
     ],
   },
@@ -178,17 +179,17 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
     description: 'What stays and what goes? For each item below, tell us whether it\'s included in the sale price, or whether you\'re taking it with you. This avoids disagreements later.',
     part: 'A',
     fields: [
-      { key: 'kitchen_fitted_units', label: 'Fitted kitchen units', type: 'select', required: true, helpText: 'The cupboards, worktops, and built-in units in the kitchen.', options: [
+      { key: 'kitchen_fitted_units', label: 'Fitted kitchen units', type: 'select', required: true, helpText: 'Cupboards, worktops, and built-in units.', options: [
         { value: 'included', label: 'Included in sale' },
         { value: 'excluded', label: 'Excluded from sale' },
         { value: 'none', label: 'None at property' },
       ]},
-      { key: 'kitchen_appliances', label: 'Kitchen appliances (oven, hob, extractor)', type: 'select', helpText: 'Built-in appliances like the oven, hob (cooktop), and extractor fan. Freestanding appliances like a fridge or washing machine can also be mentioned in the notes below.', options: [
+      { key: 'kitchen_appliances', label: 'Kitchen appliances (oven, hob, extractor)', type: 'select', helpText: 'Built-in appliances. Mention freestanding ones in notes.', options: [
         { value: 'included', label: 'Included in sale' },
         { value: 'excluded', label: 'Excluded from sale' },
         { value: 'none', label: 'None at property' },
       ]},
-      { key: 'light_fittings', label: 'Light fittings', type: 'select', helpText: 'This means the lampshades, light fixtures, and ceiling lights. If you\'re taking any special light fittings with you, select "Excluded".', options: [
+      { key: 'light_fittings', label: 'Light fittings', type: 'select', helpText: 'Lampshades, fixtures, and ceiling lights.', options: [
         { value: 'included', label: 'Included in sale' },
         { value: 'excluded', label: 'Excluded from sale' },
       ]},
@@ -197,12 +198,12 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
         { value: 'excluded', label: 'Excluded from sale' },
         { value: 'none', label: 'None at property' },
       ]},
-      { key: 'carpets', label: 'Fitted carpets / floor coverings', type: 'select', helpText: 'Carpets, laminate, vinyl, or tiles that are fitted to the floor.', options: [
+      { key: 'carpets', label: 'Fitted carpets / floor coverings', type: 'select', options: [
         { value: 'included', label: 'Included in sale' },
         { value: 'excluded', label: 'Excluded from sale' },
         { value: 'none', label: 'None at property' },
       ]},
-      { key: 'bathroom_fittings', label: 'Bathroom fittings', type: 'select', helpText: 'The bath, shower, toilet, and basin. These are almost always included.', options: [
+      { key: 'bathroom_fittings', label: 'Bathroom fittings', type: 'select', helpText: 'Bath, shower, toilet, and basin.', options: [
         { value: 'included', label: 'Included in sale' },
         { value: 'excluded', label: 'Excluded from sale' },
       ]},
@@ -216,7 +217,7 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
         { value: 'excluded', label: 'Excluded from sale' },
         { value: 'none', label: 'None at property' },
       ]},
-      { key: 'fixtures_notes', label: 'Any additional notes about fixtures and fittings?', type: 'textarea', helpText: 'Mention any other items — e.g. freestanding appliances, garden furniture, smart home devices, or anything you want to negotiate separately.' },
+      { key: 'fixtures_notes', label: 'Any additional notes about fixtures and fittings?', type: 'textarea', helpText: 'E.g. freestanding appliances, garden furniture, smart devices.' },
     ],
   },
   {
@@ -225,12 +226,12 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
     description: 'Information about the gas, electric, water, heating, and broadband at the property. You can usually find supplier details on your latest bills.',
     part: 'A',
     fields: [
-      { key: 'electricity_supplier', label: 'Electricity supplier', type: 'text', helpText: 'The company you pay for electricity — check a recent bill if unsure.' },
-      { key: 'gas_connected', label: 'Is mains gas connected?', type: 'boolean', required: true, helpText: 'Does the property have a gas supply from the street? Not all properties do — some use electricity or oil for heating instead.' },
+      { key: 'electricity_supplier', label: 'Electricity supplier', type: 'text', helpText: 'Check a recent bill if unsure.' },
+      { key: 'gas_connected', label: 'Is mains gas connected?', type: 'boolean', required: true, helpText: 'Not all properties have a gas supply.' },
       { key: 'gas_supplier', label: 'Gas supplier', type: 'text', showWhen: { field: 'gas_connected', value: true } },
-      { key: 'water_supplier', label: 'Water supplier', type: 'text', helpText: 'The company that supplies your water — check a recent bill if unsure.' },
-      { key: 'water_meter', label: 'Is there a water meter?', type: 'boolean', helpText: 'A water meter measures how much water you use. If you have one, you pay for what you use. If not, you pay a fixed annual amount.' },
-      { key: 'sewerage_connection', label: 'How is the property connected to sewerage?', type: 'select', required: true, helpText: 'Most properties connect to "mains sewer" (the public drainage system). Rural properties may have a septic tank (underground waste treatment) or cesspit (underground waste storage that needs emptying).', options: [
+      { key: 'water_supplier', label: 'Water supplier', type: 'text', helpText: 'Check a recent bill if unsure.' },
+      { key: 'water_meter', label: 'Is there a water meter?', type: 'boolean', helpText: 'With a meter you pay for what you use.' },
+      { key: 'sewerage_connection', label: 'How is the property connected to sewerage?', type: 'select', required: true, helpText: 'Most use mains sewer. Rural homes may have a septic tank.', options: [
         { value: 'mains', label: 'Mains sewer' },
         { value: 'septic_tank', label: 'Septic tank' },
         { value: 'cesspit', label: 'Cesspit' },
@@ -238,7 +239,7 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
         { value: 'other', label: 'Other' },
       ]},
       { key: 'sewerage_other', label: 'Please describe', type: 'text', showWhen: { field: 'sewerage_connection', value: 'other' } },
-      { key: 'heating_type', label: 'Type of central heating', type: 'select', required: true, helpText: 'How is the property heated? Most UK homes use gas central heating. A heat pump uses outside air or ground heat (like a fridge in reverse).', options: [
+      { key: 'heating_type', label: 'Type of central heating', type: 'select', required: true, helpText: 'Most UK homes use gas central heating.', options: [
         { value: 'gas_central', label: 'Gas central heating' },
         { value: 'oil', label: 'Oil-fired' },
         { value: 'electric', label: 'Electric' },
@@ -250,8 +251,8 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
         { value: 'other', label: 'Other' },
       ]},
       { key: 'heating_other', label: 'Please describe the heating', type: 'text', showWhen: { field: 'heating_type', value: 'other' } },
-      { key: 'boiler_age', label: 'Approximate age of boiler (years)', type: 'number', helpText: 'A rough number is fine. Boilers usually last 10-15 years. If you don\'t know, check the installation date on the boiler label.' },
-      { key: 'broadband_type', label: 'Broadband availability', type: 'select', helpText: 'If you\'re not sure, check your current broadband speed or ask your provider. "Full fibre" is the fastest and most modern type.', options: [
+      { key: 'boiler_age', label: 'Approximate age of boiler (years)', type: 'number', helpText: 'A rough number is fine.' },
+      { key: 'broadband_type', label: 'Broadband availability', type: 'select', helpText: 'Full fibre (FTTP) is the fastest type.', options: [
         { value: 'fibre_full', label: 'Full fibre (FTTP)' },
         { value: 'fibre_cabinet', label: 'Fibre to cabinet (FTTC)' },
         { value: 'adsl', label: 'ADSL' },
@@ -259,16 +260,16 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
         { value: 'none', label: 'No broadband' },
         { value: 'unknown', label: 'Unknown' },
       ]},
-      { key: 'mobile_signal', label: 'Mobile phone signal coverage', type: 'select', helpText: 'How well does your mobile phone work at the property? Can you make calls and use the internet easily?', options: [
+      { key: 'mobile_signal', label: 'Mobile phone signal coverage', type: 'select', options: [
         { value: 'good', label: 'Good' },
         { value: 'moderate', label: 'Moderate' },
         { value: 'poor', label: 'Poor' },
         { value: 'none', label: 'No coverage' },
         { value: 'unknown', label: 'Unknown' },
       ]},
-      { key: 'solar_panels', label: 'Are there solar panels on the property?', type: 'boolean', helpText: 'Solar panels on the roof that generate electricity.' },
-      { key: 'solar_details', label: 'Please give details (owned/leased, feed-in tariff)', type: 'textarea', showWhen: { field: 'solar_panels', value: true }, helpText: 'Do you own the panels, or are they leased from a company? Are you receiving any payments for electricity generated (feed-in tariff)?' },
-      { key: 'in_ulez', label: 'Is the property within the ULEZ zone? (London only)', type: 'select', helpText: 'ULEZ is London\'s Ultra Low Emission Zone — a charge applies to older, more polluting vehicles. Only relevant for London properties.', options: [
+      { key: 'solar_panels', label: 'Are there solar panels on the property?', type: 'boolean' },
+      { key: 'solar_details', label: 'Please give details (owned/leased, feed-in tariff)', type: 'textarea', showWhen: { field: 'solar_panels', value: true }, helpText: 'Owned or leased? Any feed-in tariff payments?' },
+      { key: 'in_ulez', label: 'Is the property within the ULEZ zone? (London only)', type: 'select', helpText: 'London\'s vehicle emission charge zone.', options: [
         { value: 'yes', label: 'Yes' },
         { value: 'no', label: 'No' },
         { value: 'not_applicable', label: 'Not in London' },
@@ -281,13 +282,13 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
     description: 'Details about the property\'s buildings insurance. This isn\'t about contents insurance (your belongings) — it\'s about the building itself. You can find these details on your insurance policy documents.',
     part: 'A',
     fields: [
-      { key: 'buildings_insurance_provider', label: 'Buildings insurance provider', type: 'text', helpText: 'The company that insures the building (not your contents). If you\'re leasehold, the freeholder may arrange this.' },
-      { key: 'insurance_policy_number', label: 'Policy number', type: 'text', helpText: 'Found on your insurance certificate or policy documents.' },
-      { key: 'has_insurance_claims', label: 'Have any insurance claims been made in the last 5 years?', type: 'boolean', required: true, helpText: 'Have you claimed on your buildings insurance in the past 5 years? For example, for storm damage, flooding, fire, theft damage, or subsidence.' },
-      { key: 'claims_details', label: 'Please give details of claims', type: 'textarea', showWhen: { field: 'has_insurance_claims', value: true }, helpText: 'Describe what happened and roughly when.' },
-      { key: 'has_insurance_refused', label: 'Has insurance ever been refused, cancelled, or had special terms imposed?', type: 'boolean', required: true, helpText: 'Has any insurance company ever refused to insure the property, cancelled the policy, or added special conditions (like a higher excess for flooding)?' },
+      { key: 'buildings_insurance_provider', label: 'Buildings insurance provider', type: 'text', helpText: 'The company insuring the building, not contents.' },
+      { key: 'insurance_policy_number', label: 'Policy number', type: 'text', helpText: 'Found on your insurance documents.' },
+      { key: 'has_insurance_claims', label: 'Have any insurance claims been made in the last 5 years?', type: 'boolean', required: true, helpText: 'E.g. storm damage, flooding, fire, or subsidence.' },
+      { key: 'claims_details', label: 'Please give details of claims', type: 'textarea', showWhen: { field: 'has_insurance_claims', value: true } },
+      { key: 'has_insurance_refused', label: 'Has insurance ever been refused, cancelled, or had special terms imposed?', type: 'boolean', required: true },
       { key: 'insurance_refused_details', label: 'Please give details', type: 'textarea', showWhen: { field: 'has_insurance_refused', value: true } },
-      { key: 'has_title_indemnity', label: 'Is there any title defect insurance policy in place?', type: 'boolean', helpText: 'Title defect insurance is a special policy that protects against problems with the legal ownership of the property. Your solicitor may have arranged this previously.' },
+      { key: 'has_title_indemnity', label: 'Is there any title defect insurance policy in place?', type: 'boolean', helpText: 'Covers problems with legal ownership. Ask your solicitor.' },
       { key: 'title_indemnity_details', label: 'Please give details', type: 'textarea', showWhen: { field: 'has_title_indemnity', value: true } },
     ],
   },
@@ -297,33 +298,33 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
     description: 'Boundaries are the edges of your property — the fences, walls, or hedges that mark where your land ends and your neighbour\'s begins. This section asks who looks after each boundary.',
     part: 'A',
     fields: [
-      { key: 'boundary_front', label: 'Who owns/maintains the front boundary?', type: 'select', required: true, helpText: 'The fence, wall, or hedge at the front of your property (facing the street). "Shared" means you and your neighbour both look after it.', options: [
+      { key: 'boundary_front', label: 'Who owns/maintains the front boundary?', type: 'select', required: true, helpText: '"Shared" means you both look after it.', options: [
         { value: 'seller', label: 'Seller' },
         { value: 'neighbour', label: 'Neighbour' },
         { value: 'shared', label: 'Shared' },
         { value: 'unknown', label: 'Unknown' },
       ]},
-      { key: 'boundary_rear', label: 'Who owns/maintains the rear boundary?', type: 'select', required: true, helpText: 'The fence, wall, or hedge at the back of your property.', options: [
+      { key: 'boundary_rear', label: 'Who owns/maintains the rear boundary?', type: 'select', required: true, options: [
         { value: 'seller', label: 'Seller' },
         { value: 'neighbour', label: 'Neighbour' },
         { value: 'shared', label: 'Shared' },
         { value: 'unknown', label: 'Unknown' },
       ]},
-      { key: 'boundary_left', label: 'Who owns/maintains the left boundary?', type: 'select', required: true, helpText: 'The boundary on the left side when you face the front of the property from the street.', options: [
+      { key: 'boundary_left', label: 'Who owns/maintains the left boundary?', type: 'select', required: true, helpText: 'Left side when facing the property from the street.', options: [
         { value: 'seller', label: 'Seller' },
         { value: 'neighbour', label: 'Neighbour' },
         { value: 'shared', label: 'Shared' },
         { value: 'unknown', label: 'Unknown' },
       ]},
-      { key: 'boundary_right', label: 'Who owns/maintains the right boundary?', type: 'select', required: true, helpText: 'The boundary on the right side when you face the front of the property from the street.', options: [
+      { key: 'boundary_right', label: 'Who owns/maintains the right boundary?', type: 'select', required: true, helpText: 'Right side when facing the property from the street.', options: [
         { value: 'seller', label: 'Seller' },
         { value: 'neighbour', label: 'Neighbour' },
         { value: 'shared', label: 'Shared' },
         { value: 'unknown', label: 'Unknown' },
       ]},
-      { key: 'has_boundary_disputes', label: 'Are there any boundary disputes?', type: 'boolean', required: true, helpText: 'Any disagreement with a neighbour about where the boundary line is, or about a fence/wall/hedge.' },
+      { key: 'has_boundary_disputes', label: 'Are there any boundary disputes?', type: 'boolean', required: true },
       { key: 'boundary_dispute_details', label: 'Please give details', type: 'textarea', showWhen: { field: 'has_boundary_disputes', value: true } },
-      { key: 'boundary_agreements', label: 'Are there any boundary agreements in place?', type: 'boolean', helpText: 'A formal or written agreement between you and a neighbour about the boundary — for example, about maintaining a shared fence.' },
+      { key: 'boundary_agreements', label: 'Are there any boundary agreements in place?', type: 'boolean', helpText: 'A written agreement with a neighbour about a boundary.' },
       { key: 'boundary_agreement_details', label: 'Please give details', type: 'textarea', showWhen: { field: 'boundary_agreements', value: true } },
     ],
   },
@@ -333,13 +334,13 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
     description: 'This section is about whether anyone else has the right to use part of your property, or whether you have any informal agreements with neighbours. These things can affect the buyer.',
     part: 'A',
     fields: [
-      { key: 'has_rights_of_way', label: 'Are there any rights of way across the property?', type: 'boolean', required: true, helpText: 'A right of way means someone else has the legal right to walk or drive across your property — for example, a neighbour using your driveway to reach their house.' },
+      { key: 'has_rights_of_way', label: 'Are there any rights of way across the property?', type: 'boolean', required: true, helpText: 'Can someone else legally cross your property?' },
       { key: 'rights_of_way_details', label: 'Please give details', type: 'textarea', showWhen: { field: 'has_rights_of_way', value: true } },
-      { key: 'has_shared_access', label: 'Is any access to the property shared with others?', type: 'boolean', required: true, helpText: 'For example, a shared driveway, shared path, or communal entrance that you use together with neighbours.' },
+      { key: 'has_shared_access', label: 'Is any access to the property shared with others?', type: 'boolean', required: true, helpText: 'E.g. shared driveway, path, or communal entrance.' },
       { key: 'shared_access_details', label: 'Please give details', type: 'textarea', showWhen: { field: 'has_shared_access', value: true } },
-      { key: 'has_informal_arrangements', label: 'Are there any informal arrangements with neighbours?', type: 'boolean', helpText: 'Any unwritten agreements — for example, a neighbour parks in your space, you use part of their garden, or you share maintenance costs for something.' },
+      { key: 'has_informal_arrangements', label: 'Are there any informal arrangements with neighbours?', type: 'boolean', helpText: 'Unwritten agreements, like shared parking or garden use.' },
       { key: 'informal_arrangement_details', label: 'Please describe the arrangements', type: 'textarea', showWhen: { field: 'has_informal_arrangements', value: true } },
-      { key: 'has_easements', label: 'Are there any easements benefiting or burdening the property?', type: 'boolean', helpText: 'An easement is a legal right for someone to use part of your land for a specific purpose — like utility companies running cables under your garden, or a neighbour having the right to drain water across your land. Check your title deeds or ask your solicitor.' },
+      { key: 'has_easements', label: 'Are there any easements benefiting or burdening the property?', type: 'boolean', helpText: 'A legal right for others to use part of your land.' },
       { key: 'easement_details', label: 'Please give details', type: 'textarea', showWhen: { field: 'has_easements', value: true } },
     ],
   },
@@ -349,15 +350,15 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
     description: 'A few final questions about potential environmental problems. Just answer honestly — most properties won\'t have any of these issues.',
     part: 'A',
     fields: [
-      { key: 'has_contamination', label: 'Are you aware of any contamination on or near the property?', type: 'boolean', required: true, helpText: 'This could include things like old fuel tanks, chemical spills, or the property being near a former industrial site or landfill.' },
+      { key: 'has_contamination', label: 'Are you aware of any contamination on or near the property?', type: 'boolean', required: true, helpText: 'E.g. old fuel tanks, chemical spills, or nearby landfill.' },
       { key: 'contamination_details', label: 'Please give details', type: 'textarea', showWhen: { field: 'has_contamination', value: true } },
-      { key: 'has_trees', label: 'Are there any trees subject to Tree Preservation Orders?', type: 'boolean', helpText: 'A Tree Preservation Order (TPO) means a tree on or near your property is legally protected by the council. You can\'t cut it down or significantly prune it without permission.' },
+      { key: 'has_trees', label: 'Are there any trees subject to Tree Preservation Orders?', type: 'boolean', helpText: 'Protected trees that can\'t be cut without council permission.' },
       { key: 'tree_details', label: 'Please give details', type: 'textarea', showWhen: { field: 'has_trees', value: true } },
-      { key: 'has_pest_issues', label: 'Have there been any pest infestations (woodworm, dry rot, etc.)?', type: 'boolean', helpText: 'Woodworm (tiny holes in timber), dry rot (crumbling wood from fungus), wet rot, mice, rats, or any other pest problems — even if they were treated.' },
+      { key: 'has_pest_issues', label: 'Have there been any pest infestations (woodworm, dry rot, etc.)?', type: 'boolean', helpText: 'Include any past problems, even if treated.' },
       { key: 'pest_details', label: 'Please give details including treatment', type: 'textarea', showWhen: { field: 'has_pest_issues', value: true } },
-      { key: 'has_damp_issues', label: 'Are there any damp issues?', type: 'boolean', helpText: 'Signs of damp include wet patches on walls, peeling wallpaper, black mould, musty smells, or condensation on windows.' },
+      { key: 'has_damp_issues', label: 'Are there any damp issues?', type: 'boolean', helpText: 'E.g. wet patches, black mould, or musty smells.' },
       { key: 'damp_details', label: 'Please give details', type: 'textarea', showWhen: { field: 'has_damp_issues', value: true } },
-      { key: 'other_issues', label: 'Is there anything else a buyer should know about?', type: 'textarea', helpText: 'Anything else that might affect someone\'s decision to buy. If in doubt, mention it here — it\'s better to say too much than too little.' },
+      { key: 'other_issues', label: 'Is there anything else a buyer should know about?', type: 'textarea', helpText: 'If in doubt, mention it here.' },
     ],
   },
 
@@ -370,17 +371,17 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
     description: 'This section is about who legally owns the property. Your solicitor or conveyancer can help you with this if you\'re unsure. Your title deeds contain most of this information.',
     part: 'B',
     fields: [
-      { key: 'title_number', label: 'Title Number', type: 'text', required: true, helpText: 'This is a unique reference number from the Land Registry (e.g. "HD123456"). It\'s on your title deeds. If you don\'t have your deeds, your solicitor or mortgage lender may have them.' },
-      { key: 'ownership_type', label: 'Type of ownership', type: 'select', required: true, helpText: '"Sole owner" means one person owns it. "Joint tenants" means two or more people own it equally (if one dies, the other inherits). "Tenants in common" means two or more people own shares (which can be unequal and can be left in a will).', options: [
+      { key: 'title_number', label: 'Title Number', type: 'text', required: true, helpText: 'Land Registry reference (e.g. "HD123456") from your title deeds.' },
+      { key: 'ownership_type', label: 'Type of ownership', type: 'select', required: true, helpText: 'Joint tenants = equal shares. Tenants in common = can be unequal.', options: [
         { value: 'sole', label: 'Sole owner' },
         { value: 'joint_tenants', label: 'Joint tenants' },
         { value: 'tenants_in_common', label: 'Tenants in common' },
       ]},
-      { key: 'all_owners_agree', label: 'Do all legal owners agree to the sale?', type: 'boolean', required: true, helpText: 'Everyone named on the title deeds must agree to sell.' },
-      { key: 'has_restrictions', label: 'Are there any restrictions on the title?', type: 'boolean', required: true, helpText: 'Restrictions are legal conditions attached to the property — for example, restrictions on how the property can be used, or a requirement to get someone else\'s consent before selling. Check your title deeds or ask your solicitor.' },
+      { key: 'all_owners_agree', label: 'Do all legal owners agree to the sale?', type: 'boolean', required: true },
+      { key: 'has_restrictions', label: 'Are there any restrictions on the title?', type: 'boolean', required: true, helpText: 'Legal conditions on how the property can be used or sold.' },
       { key: 'restriction_details', label: 'Please give details of any restrictions', type: 'textarea', showWhen: { field: 'has_restrictions', value: true } },
-      { key: 'has_charges', label: 'Are there any charges registered against the title (mortgage, etc.)?', type: 'boolean', required: true, helpText: 'A "charge" is usually a mortgage — the bank has a legal claim on the property until the mortgage is paid off. If you have a mortgage, answer "Yes".' },
-      { key: 'charge_details', label: 'Please give details', type: 'textarea', showWhen: { field: 'has_charges', value: true }, helpText: 'Name the lender (e.g. "Nationwide Building Society mortgage").' },
+      { key: 'has_charges', label: 'Are there any charges registered against the title (mortgage, etc.)?', type: 'boolean', required: true, helpText: 'If you have a mortgage, answer "Yes".' },
+      { key: 'charge_details', label: 'Please give details', type: 'textarea', showWhen: { field: 'has_charges', value: true }, helpText: 'Name the lender, e.g. "Nationwide mortgage".' },
     ],
   },
   {
@@ -389,9 +390,9 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
     description: 'This is about whether the actual fences and walls on the ground match the official map of your property (the "title plan"). Your solicitor can help check this.',
     part: 'B',
     fields: [
-      { key: 'boundaries_match_title', label: 'Do the physical boundaries match the title plan?', type: 'boolean', required: true, helpText: 'Does where the fences/walls actually are match where the official Land Registry map says they should be? If you\'ve never checked, it\'s usually "Yes" unless you know something has changed.' },
+      { key: 'boundaries_match_title', label: 'Do the physical boundaries match the title plan?', type: 'boolean', required: true, helpText: 'Usually "Yes" unless you know something has changed.' },
       { key: 'boundary_discrepancy', label: 'Please describe any discrepancies', type: 'textarea', showWhen: { field: 'boundaries_match_title', value: false } },
-      { key: 'has_boundary_changes', label: 'Have any boundaries been moved or altered?', type: 'boolean', required: true, helpText: 'Has any fence, wall, or hedge been moved from its original position? For example, if you or a neighbour moved a fence.' },
+      { key: 'has_boundary_changes', label: 'Have any boundaries been moved or altered?', type: 'boolean', required: true, helpText: 'Any fence, wall, or hedge moved from its original spot.' },
       { key: 'boundary_change_details', label: 'Please describe what changed and when', type: 'textarea', showWhen: { field: 'has_boundary_changes', value: true } },
     ],
   },
@@ -401,11 +402,11 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
     description: 'Sometimes pipes, wires, or drains need to cross through a neighbour\'s land to reach your property (or vice versa). This section asks about that.',
     part: 'B',
     fields: [
-      { key: 'has_services_crossing', label: 'Do any pipes, wires, cables or drains cross neighbouring property?', type: 'boolean', required: true, helpText: 'Do any of your water pipes, electricity cables, gas pipes, or drains run through or under a neighbour\'s land to connect to your property?' },
+      { key: 'has_services_crossing', label: 'Do any pipes, wires, cables or drains cross neighbouring property?', type: 'boolean', required: true, helpText: 'Do your utilities run through a neighbour\'s land?' },
       { key: 'services_crossing_details', label: 'Please describe which services and which properties', type: 'textarea', showWhen: { field: 'has_services_crossing', value: true } },
-      { key: 'has_neighbour_services', label: 'Do any neighbouring services cross your property?', type: 'boolean', required: true, helpText: 'The opposite — do any of your neighbour\'s pipes, cables, or drains run through or under your land?' },
+      { key: 'has_neighbour_services', label: 'Do any neighbouring services cross your property?', type: 'boolean', required: true, helpText: 'Do a neighbour\'s utilities run through your land?' },
       { key: 'neighbour_services_details', label: 'Please describe', type: 'textarea', showWhen: { field: 'has_neighbour_services', value: true } },
-      { key: 'has_shared_drains', label: 'Are any drains shared with neighbouring properties?', type: 'boolean', helpText: 'Some properties share drainage pipes — this is common with terraced houses and semi-detached homes.' },
+      { key: 'has_shared_drains', label: 'Are any drains shared with neighbouring properties?', type: 'boolean', helpText: 'Common with terraced and semi-detached homes.' },
       { key: 'shared_drain_details', label: 'Please describe', type: 'textarea', showWhen: { field: 'has_shared_drains', value: true } },
     ],
   },
