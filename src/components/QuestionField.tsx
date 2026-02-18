@@ -23,7 +23,7 @@ export default function QuestionField({ field, value, onChange, allValues, autoA
   }
 
   const inputClass =
-    'w-full rounded-xl border-2 border-gray-200 px-4 py-4 text-base text-gray-900 transition-colors focus:border-blue-500 focus:outline-none focus:ring-0 placeholder:text-gray-400';
+    'w-full rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-4 text-base text-gray-900 dark:text-white transition-colors focus:border-blue-500 focus:outline-none focus:ring-0 placeholder:text-gray-400 dark:placeholder:text-gray-500';
 
   const getInputType = () => {
     if (field.key.includes('email')) return 'email';
@@ -40,7 +40,7 @@ export default function QuestionField({ field, value, onChange, allValues, autoA
 
   return (
     <div className="py-2">
-      <label htmlFor={field.key} className="block text-base font-semibold text-gray-900 mb-1">
+      <label htmlFor={field.key} className="block text-base font-semibold text-gray-900 dark:text-white mb-1">
         {field.label}
         {field.required && <span className="ml-1 text-red-400">*</span>}
       </label>
@@ -49,7 +49,7 @@ export default function QuestionField({ field, value, onChange, allValues, autoA
         <button
           type="button"
           onClick={() => setShowHelp(!showHelp)}
-          className="mb-2 flex items-center gap-1 text-sm text-blue-500 active:text-blue-700"
+          className="mb-2 flex items-center gap-1 text-sm text-blue-500 dark:text-blue-400 active:text-blue-700"
         >
           <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -59,7 +59,7 @@ export default function QuestionField({ field, value, onChange, allValues, autoA
       )}
 
       {showHelp && field.helpText && (
-        <p className="mb-3 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
+        <p className="mb-3 rounded-lg bg-blue-50 dark:bg-blue-900/30 px-3 py-2 text-sm text-blue-700 dark:text-blue-300">
           {field.helpText}
         </p>
       )}
@@ -90,8 +90,8 @@ export default function QuestionField({ field, value, onChange, allValues, autoA
                 }}
                 className={`rounded-xl border-2 py-3.5 text-center text-base font-semibold transition-all active:scale-[0.98] sm:px-6 ${
                   value === num
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-gray-200 bg-white text-gray-700 active:border-gray-300'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
+                    : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 active:border-gray-300'
                 }`}
               >
                 {num === field.quickPick![field.quickPick!.length - 1] ? `${num}+` : num}
@@ -155,8 +155,8 @@ export default function QuestionField({ field, value, onChange, allValues, autoA
               }}
               className={`w-full rounded-xl border-2 px-4 py-3.5 text-left text-base font-medium transition-all active:scale-[0.98] ${
                 value === opt.value
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 bg-white text-gray-700 active:border-gray-300 active:bg-gray-50'
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
+                  : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 active:border-gray-300 active:bg-gray-50 dark:active:bg-gray-700'
               }`}
             >
               {opt.label}
@@ -175,8 +175,8 @@ export default function QuestionField({ field, value, onChange, allValues, autoA
             }}
             className={`rounded-xl border-2 px-4 py-4 text-base font-semibold transition-all active:scale-[0.98] ${
               value === true
-                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                : 'border-gray-200 bg-white text-gray-600 active:border-gray-300'
+                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
+                : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 active:border-gray-300'
             }`}
           >
             Yes
@@ -189,8 +189,8 @@ export default function QuestionField({ field, value, onChange, allValues, autoA
             }}
             className={`rounded-xl border-2 px-4 py-4 text-base font-semibold transition-all active:scale-[0.98] ${
               value === false
-                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                : 'border-gray-200 bg-white text-gray-600 active:border-gray-300'
+                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
+                : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 active:border-gray-300'
             }`}
           >
             No

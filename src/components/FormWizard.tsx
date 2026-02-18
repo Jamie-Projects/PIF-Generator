@@ -5,6 +5,7 @@ import { BASPI_SECTIONS, FormField } from '@/lib/baspiSchema';
 import QuestionField from './QuestionField';
 import SaveIndicator from './SaveIndicator';
 import ConveyancerSummary from './ConveyancerSummary';
+import PrepopulationConsent from './PrepopulationConsent';
 
 interface SectionData {
   id: string;
@@ -49,6 +50,15 @@ export default function FormWizard({
   const [isCompleted, setIsCompleted] = useState(initialIsCompleted);
   const [showSectionNav, setShowSectionNav] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [showPrepopulation, setShowPrepopulation] = useState(() => {
+    // Show prepopulation only for fresh forms (step 0, no data yet)
+    if (initialIsCompleted || initialStep > 0) return false;
+    const hasAnyData = initialSections.some(s => {
+      const data = s.data as Record<string, unknown>;
+      return Object.values(data).some(v => v !== undefined && v !== null && v !== '');
+    });
+    return !hasAnyData;
+  });
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -236,6 +246,42 @@ export default function FormWizard({
     }
   };
 
+  const handlePrepopulationAccept = async (prepopulated: Record<string, Record<string, unknown>>) => {
+    // Merge prepopulated data into sections
+    setSections(prev => prev.map(s => {
+      const preData = prepopulated[s.sectionKey];
+      if (!preData) return s;
+      const mergedData = { ...(s.data as Record<string, unknown>), ...preData };
+      return { ...s, data: mergedData, status: 'IN_PROGRESS' };
+    }));
+
+    // Save each prepopulated section to the server
+    for (const [sectionKey, data] of Object.entries(prepopulated)) {
+      const section = sections.find(s => s.sectionKey === sectionKey);
+      if (section) {
+        const mergedData = { ...(section.data as Record<string, unknown>), ...data };
+        await saveSection(sectionKey, mergedData, 0);
+      }
+    }
+
+    setShowPrepopulation(false);
+  };
+
+  // Show prepopulation consent flow
+  if (showPrepopulation) {
+    // Get postcode from form details or initial section data
+    const propData = sections.find(s => s.sectionKey === 'property_details')?.data as Record<string, unknown> | undefined;
+    const postcode = (propData?.postcode as string) || '';
+
+    return (
+      <PrepopulationConsent
+        postcode={postcode}
+        onAccept={handlePrepopulationAccept}
+        onSkip={() => setShowPrepopulation(false)}
+      />
+    );
+  }
+
   if (isCompleted) {
     const riskSections = sections.map(s => ({
       sectionKey: s.sectionKey,
@@ -248,22 +294,22 @@ export default function FormWizard({
     const seller = (sections.find(s => s.sectionKey === 'seller_details')?.data as Record<string, unknown> | undefined)?.seller_full_name as string || '';
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-8">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800 py-8">
         {/* Success header */}
         <div className="mx-auto max-w-lg px-4 text-center mb-8">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-            <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
+            <svg className="h-8 w-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="mb-2 text-2xl font-bold text-gray-900">All done!</h2>
-          <p className="text-gray-600">
+          <h2 className="mb-2 text-2xl font-bold text-gray-900 dark:text-white">All done!</h2>
+          <p className="text-gray-600 dark:text-gray-300">
             Your Property Information Form has been submitted to <strong>{companyName}</strong>. Thank you!
           </p>
         </div>
 
         {/* Conveyancer Summary */}
-        <div className="mx-auto max-w-lg bg-white rounded-2xl shadow-xl py-6 mb-6">
+        <div className="mx-auto max-w-lg bg-white dark:bg-gray-800 rounded-2xl shadow-xl py-6 mb-6">
           <ConveyancerSummary
             sections={riskSections}
             propertyAddress={address}
@@ -277,12 +323,12 @@ export default function FormWizard({
   // Section navigation overlay
   if (showSectionNav) {
     return (
-      <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900">Sections</h2>
+      <div className="fixed inset-0 z-50 bg-white dark:bg-gray-900 overflow-y-auto">
+        <div className="sticky top-0 bg-white dark:bg-gray-900 border-b dark:border-gray-700 px-4 py-3 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Sections</h2>
           <button
             onClick={() => setShowSectionNav(false)}
-            className="rounded-lg p-2 active:bg-gray-100"
+            className="rounded-lg p-2 active:bg-gray-100 dark:active:bg-gray-800 text-gray-900 dark:text-white"
           >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -290,7 +336,7 @@ export default function FormWizard({
           </button>
         </div>
         <div className="p-4 space-y-1 pb-8">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Part A - Material Facts</p>
+          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">Part A - Material Facts</p>
           {BASPI_SECTIONS.map((sectionDef, index) => {
             const sectionStatus = sections.find(s => s.sectionKey === sectionDef.key)?.status || 'NOT_STARTED';
             const isActive = currentStep === index;
@@ -298,7 +344,7 @@ export default function FormWizard({
             if (sectionDef.part === 'B' && BASPI_SECTIONS[index - 1]?.part === 'A') {
               return (
                 <div key={`b-${index}`}>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mt-4 mb-2">Part B - Legal & Conveyancing</p>
+                  <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mt-4 mb-2">Part B - Legal & Conveyancing</p>
                   <SectionNavItem
                     title={sectionDef.title}
                     status={sectionStatus}
@@ -327,20 +373,20 @@ export default function FormWizard({
   }
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-white">
+    <div className="flex min-h-[100dvh] flex-col bg-white dark:bg-gray-900">
       {/* Compact header */}
-      <header className="sticky top-0 z-30 border-b bg-white">
+      <header className="sticky top-0 z-30 border-b dark:border-gray-700 bg-white dark:bg-gray-900">
         <div className="px-4 py-2">
           <div className="flex items-center gap-3">
             <div className="flex-1">
-              <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
+              <div className="h-1.5 w-full rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
                 <div
                   className="h-full rounded-full bg-blue-500 transition-all duration-500"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
             </div>
-            <span className="text-xs font-medium text-gray-500 shrink-0">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">
               {progressPercent}% · ~{Math.max(1, Math.ceil((totalFields - answeredFields) * 0.25))} min left
             </span>
             <SaveIndicator status={saveStatus} lastSaved={lastSaved} compact />
@@ -350,12 +396,12 @@ export default function FormWizard({
               onClick={() => setShowSectionNav(true)}
               className="flex items-center gap-1 text-sm active:text-blue-600"
             >
-              <span className="font-medium text-gray-900">{currentSectionDef?.title}</span>
-              <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <span className="font-medium text-gray-900 dark:text-white">{currentSectionDef?.title}</span>
+              <svg className="h-4 w-4 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-gray-400 dark:text-gray-500">
               {currentFieldIndex + 1}/{visibleFields.length}
             </span>
           </div>
@@ -381,7 +427,7 @@ export default function FormWizard({
           )}
 
           {validationError && (
-            <div className="mt-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+            <div className="mt-4 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-300">
               {validationError}
             </div>
           )}
@@ -389,12 +435,12 @@ export default function FormWizard({
       </main>
 
       {/* Sticky bottom nav */}
-      <footer className="sticky bottom-0 border-t bg-white px-4 py-3" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+      <footer className="sticky bottom-0 border-t dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
         <div className="mx-auto flex max-w-lg items-center gap-3">
           <button
             onClick={goToPrevField}
             disabled={isFirstField}
-            className="rounded-xl border-2 border-gray-200 p-3 text-gray-600 transition-colors active:bg-gray-50 disabled:opacity-30"
+            className="rounded-xl border-2 border-gray-200 dark:border-gray-600 p-3 text-gray-600 dark:text-gray-300 transition-colors active:bg-gray-50 dark:active:bg-gray-800 disabled:opacity-30"
             aria-label="Previous"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -440,18 +486,18 @@ function SectionNavItem({
     <button
       onClick={onClick}
       className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-all active:scale-[0.98] ${
-        isActive ? 'bg-blue-50 text-blue-900' : 'active:bg-gray-50 text-gray-700'
+        isActive ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-900 dark:text-blue-200' : 'active:bg-gray-50 dark:active:bg-gray-800 text-gray-700 dark:text-gray-300'
       }`}
     >
       <span
         className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
           status === 'COMPLETED'
-            ? 'bg-green-100 text-green-700'
+            ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-400'
             : status === 'IN_PROGRESS'
-              ? 'bg-blue-100 text-blue-700'
+              ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-400'
               : isActive
                 ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 text-gray-500'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
         }`}
       >
         {status === 'COMPLETED' ? (
