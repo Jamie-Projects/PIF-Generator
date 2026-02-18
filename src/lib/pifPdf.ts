@@ -99,10 +99,11 @@ export function generatePifPdf(
     }
 
     if (rows.length === 0) {
+      // No visible fields in this section (rare — only if all fields are conditional)
       doc.setFontSize(9);
       doc.setFont('helvetica', 'italic');
       doc.setTextColor(130, 130, 130);
-      doc.text('No answers provided', 20, y + 6);
+      doc.text('No applicable questions in this section', 20, y + 6);
       y += 14;
       continue;
     }

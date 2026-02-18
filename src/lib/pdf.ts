@@ -87,17 +87,18 @@ export function generatePIF(
 
     if (sectionDef.fields) {
       for (const field of sectionDef.fields) {
-        const value = section.data[field.key];
-        if (value === undefined || value === null || value === '') continue;
-
         // Check showWhen condition
         if (field.showWhen) {
           const parentVal = section.data[field.showWhen.field];
           if (parentVal !== field.showWhen.value) continue;
         }
 
+        const value = section.data[field.key];
         let displayValue: string;
-        if (typeof value === 'boolean') {
+
+        if (value === undefined || value === null || value === '') {
+          displayValue = '—';
+        } else if (typeof value === 'boolean') {
           displayValue = value ? 'Yes' : 'No';
         } else if (field.options) {
           const opt = field.options.find(o => o.value === value);

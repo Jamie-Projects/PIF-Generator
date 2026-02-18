@@ -1,67 +1,87 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface PrepopulationConsentProps {
   postcode: string;
+  address: string;
   onAccept: (prepopulated: Record<string, Record<string, unknown>>) => void;
   onSkip: () => void;
 }
 
-interface AddressResult {
-  uprn: string;
-  address: string;
+interface AutocompleteResult {
+  addresses: string[];
+  highlights: string[];
+  session: string;
 }
 
-type Stage = 'loading' | 'select-address' | 'found-data' | 'error' | 'skipped';
+type Stage = 'search' | 'loading' | 'found-data' | 'error';
 
-export default function PrepopulationConsent({ postcode, onAccept, onSkip }: PrepopulationConsentProps) {
-  const [stage, setStage] = useState<Stage>('loading');
-  const [addresses, setAddresses] = useState<AddressResult[]>([]);
+export default function PrepopulationConsent({ postcode, address, onAccept, onSkip }: PrepopulationConsentProps) {
+  const [stage, setStage] = useState<Stage>('search');
+  const [addressQuery, setAddressQuery] = useState(address || '');
+  const [autocompleteResults, setAutocompleteResults] = useState<AutocompleteResult | null>(null);
+  const [autocompleteSession, setAutocompleteSession] = useState<string | undefined>();
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [fieldCount, setFieldCount] = useState(0);
   const [timeSaved, setTimeSaved] = useState(0);
   const [prepopulated, setPrepopulated] = useState<Record<string, Record<string, unknown>>>({});
   const [error, setError] = useState('');
-  const [totalFields] = useState(150); // approximate total form fields
-  const hasStarted = useRef(false);
+  const [totalFields] = useState(150);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Start searching on mount
-  useEffect(() => {
-    if (hasStarted.current) return;
-    hasStarted.current = true;
-    if (postcode) {
-      searchAddresses();
-    } else {
-      onSkip();
+  // Debounced autocomplete search
+  const searchAddress = useCallback(async (query: string, session?: string) => {
+    if (query.length < 3) {
+      setAutocompleteResults(null);
+      setShowDropdown(false);
+      return;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
-  async function searchAddresses() {
+    setIsSearching(true);
     try {
-      setStage('loading');
-      const res = await fetch(`/api/chimnie/address?postcode=${encodeURIComponent(postcode)}`);
-      if (!res.ok) throw new Error('Address search failed');
-      const data = await res.json();
-      if (data.addresses?.length > 0) {
-        setAddresses(data.addresses);
-        setStage('select-address');
-      } else {
-        // No addresses found, skip prepopulation
-        onSkip();
+      const params = new URLSearchParams({ query });
+      if (session) params.set('session', session);
+      const res = await fetch(`/api/chimnie/address?${params}`);
+      if (res.ok) {
+        const data: AutocompleteResult = await res.json();
+        setAutocompleteResults(data);
+        setAutocompleteSession(data.session);
+        setShowDropdown(true);
       }
     } catch {
-      // Chimnie unavailable - continue without prepopulation
-      onSkip();
+      // Silently fail
     }
-  }
+    setIsSearching(false);
+  }, []);
 
-  async function selectAddress(uprn: string) {
+  const handleAddressInput = (value: string) => {
+    setAddressQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      searchAddress(value, autocompleteSession);
+    }, 300);
+  };
+
+  const selectAddress = async (selectedAddress: string) => {
+    setShowDropdown(false);
+    setAddressQuery(selectedAddress);
+    setStage('loading');
+
     try {
-      setStage('loading');
-      const res = await fetch(`/api/chimnie/property?uprn=${encodeURIComponent(uprn)}`);
+      const params = new URLSearchParams({ address: selectedAddress });
+      if (autocompleteSession) params.set('session', autocompleteSession);
+      const res = await fetch(`/api/chimnie/property?${params}`);
       if (!res.ok) throw new Error('Property lookup failed');
       const data = await res.json();
+
+      if (data.notFound) {
+        onSkip();
+        return;
+      }
+
       if (data.fieldCount > 0) {
         setFieldCount(data.fieldCount);
         setTimeSaved(data.timeSaved);
@@ -74,22 +94,61 @@ export default function PrepopulationConsent({ postcode, onAccept, onSkip }: Pre
       setError('Could not fetch property data');
       setStage('error');
     }
-  }
+  };
 
-  if (stage === 'skipped') return null;
+  // Also try postcode search as an alternative
+  const searchByPostcode = async () => {
+    if (!postcode) return;
+    setIsSearching(true);
+    try {
+      const res = await fetch(`/api/chimnie/address?postcode=${encodeURIComponent(postcode)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.addresses?.length > 0) {
+          setAutocompleteResults({
+            addresses: data.addresses,
+            highlights: data.addresses, // No highlights for postcode search
+            session: data.session,
+          });
+          setAutocompleteSession(data.session);
+          setShowDropdown(true);
+        }
+      }
+    } catch {
+      // Silently fail
+    }
+    setIsSearching(false);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   if (stage === 'loading') {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800 p-6">
         <div className="max-w-sm text-center">
           <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
-          <p className="text-gray-600 dark:text-gray-300">Searching for your property...</p>
+          <p className="text-gray-600 dark:text-gray-300">Looking up your property...</p>
         </div>
       </div>
     );
   }
 
-  if (stage === 'select-address') {
+  if (stage === 'search') {
     return (
       <div className="flex min-h-[100dvh] flex-col bg-white dark:bg-gray-900 p-6">
         <div className="mx-auto w-full max-w-lg">
@@ -99,29 +158,66 @@ export default function PrepopulationConsent({ postcode, onAccept, onSkip }: Pre
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">We found addresses near {postcode}</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Find your property</h2>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Select your property and we&apos;ll fill in what we can for you.
+              Search for your address and we&apos;ll pre-fill what we can.
             </p>
           </div>
 
-          <div className="space-y-2 mb-6">
-            {addresses.map((addr) => (
-              <button
-                key={addr.uprn}
-                onClick={() => selectAddress(addr.uprn)}
-                className="w-full rounded-xl border-2 border-gray-200 dark:border-gray-700 px-4 py-3.5 text-left text-sm font-medium text-gray-900 dark:text-white transition-all active:scale-[0.98] active:border-blue-500 active:bg-blue-50 dark:active:bg-blue-900"
-              >
-                {addr.address}
-              </button>
-            ))}
+          <div ref={dropdownRef} className="relative mb-4">
+            <div className="relative">
+              <input
+                value={addressQuery}
+                onChange={e => handleAddressInput(e.target.value)}
+                onFocus={() => {
+                  if (autocompleteResults && autocompleteResults.addresses.length > 0) {
+                    setShowDropdown(true);
+                  }
+                }}
+                className="w-full rounded-xl border-2 border-gray-200 dark:border-gray-700 px-4 py-3.5 text-sm font-medium text-gray-900 dark:text-white dark:bg-gray-800"
+                placeholder="Start typing your address..."
+                autoFocus
+              />
+              {isSearching && (
+                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600" />
+                </div>
+              )}
+            </div>
+
+            {showDropdown && autocompleteResults && (
+              <div className="absolute z-10 mt-1 w-full rounded-xl border dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg max-h-60 overflow-y-auto">
+                {autocompleteResults.addresses.map((addr, i) => (
+                  <button
+                    key={i}
+                    onClick={() => selectAddress(addr)}
+                    className="w-full px-4 py-3 text-left text-sm text-gray-900 dark:text-white hover:bg-blue-50 dark:hover:bg-blue-900/30 border-b dark:border-gray-700 last:border-b-0"
+                  >
+                    {autocompleteResults.highlights[i] ? (
+                      <span dangerouslySetInnerHTML={{ __html: autocompleteResults.highlights[i] }} />
+                    ) : (
+                      addr
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+
+          {postcode && (
+            <button
+              onClick={searchByPostcode}
+              className="w-full text-center text-sm text-blue-600 dark:text-blue-400 py-2 active:text-blue-700 mb-2"
+            >
+              Or search by postcode ({postcode})
+            </button>
+          )}
 
           <button
             onClick={onSkip}
             className="w-full text-center text-sm text-gray-500 dark:text-gray-400 py-2 active:text-gray-700"
           >
-            My address isn&apos;t listed — skip this step
+            Skip — I&apos;ll fill in everything myself
           </button>
         </div>
       </div>
@@ -147,7 +243,6 @@ export default function PrepopulationConsent({ postcode, onAccept, onSkip }: Pre
             </p>
           </div>
 
-          {/* What we found */}
           <div className="rounded-xl bg-gray-50 dark:bg-gray-700 p-4 mb-5">
             <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Data we found includes:</p>
             <div className="flex flex-wrap gap-1.5">
@@ -159,7 +254,6 @@ export default function PrepopulationConsent({ postcode, onAccept, onSkip }: Pre
             </div>
           </div>
 
-          {/* Disclaimer */}
           <div className="rounded-xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/30 px-4 py-3 mb-5">
             <p className="text-xs text-amber-800 dark:text-amber-300">
               <strong>Important:</strong> You will be liable for the accuracy of all answers.

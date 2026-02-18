@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 
 interface Session {
@@ -200,6 +200,12 @@ export default function DashboardPage() {
   );
 }
 
+interface AutocompleteResult {
+  addresses: string[];
+  highlights: string[];
+  session: string;
+}
+
 function CreateSessionModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
@@ -210,7 +216,89 @@ function CreateSessionModal({ onClose, onCreated }: { onClose: () => void; onCre
   const [sellerEmail, setSellerEmail] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
-  const [result, setResult] = useState<{ formUrl: string } | null>(null);
+  const [result, setResult] = useState<{ formUrl: string; chimnieStatus?: string; chimnieMessage?: string } | null>(null);
+
+  // Autocomplete state
+  const [addressQuery, setAddressQuery] = useState('');
+  const [autocompleteResults, setAutocompleteResults] = useState<AutocompleteResult | null>(null);
+  const [autocompleteSession, setAutocompleteSession] = useState<string | undefined>();
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [manualEntry, setManualEntry] = useState(false);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Debounced autocomplete search
+  const searchAddress = useCallback(async (query: string, session?: string) => {
+    if (query.length < 3) {
+      setAutocompleteResults(null);
+      setShowDropdown(false);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const params = new URLSearchParams({ query });
+      if (session) params.set('session', session);
+      const res = await fetch(`/api/chimnie/address?${params}`);
+      if (res.ok) {
+        const data: AutocompleteResult = await res.json();
+        setAutocompleteResults(data);
+        setAutocompleteSession(data.session);
+        setShowDropdown(true);
+      }
+    } catch {
+      // Silently fail — user can still type manually
+    }
+    setIsSearching(false);
+  }, []);
+
+  const handleAddressInput = (value: string) => {
+    setAddressQuery(value);
+    setPropertyAddress(''); // Clear selected address when typing
+    setPropertyPostcode('');
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      searchAddress(value, autocompleteSession);
+    }, 300);
+  };
+
+  const selectAddress = (address: string) => {
+    setPropertyAddress(address);
+    setAddressQuery(address);
+    setShowDropdown(false);
+
+    // Extract postcode from the address (UK postcodes are typically the last part)
+    const postcodeMatch = address.match(/[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}/i);
+    if (postcodeMatch) {
+      setPropertyPostcode(postcodeMatch[0].trim());
+    }
+  };
+
+  const switchToManualEntry = () => {
+    setManualEntry(true);
+    setShowDropdown(false);
+    setPropertyAddress(addressQuery); // Keep what they typed
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   const handleCreate = async () => {
     if (!propertyAddress.trim() || !propertyPostcode.trim()) {
@@ -231,6 +319,7 @@ function CreateSessionModal({ onClose, onCreated }: { onClose: () => void; onCre
         clientName, clientEmail, externalUserId,
         propertyAddress, propertyPostcode,
         sellerName, sellerEmail,
+        autocompleteSession,
       }),
     });
 
@@ -249,6 +338,18 @@ function CreateSessionModal({ onClose, onCreated }: { onClose: () => void; onCre
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
         <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl" onClick={e => e.stopPropagation()}>
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Session Created</h3>
+
+          {result.chimnieStatus === 'prepopulated' && (
+            <div className="mb-4 rounded-lg bg-green-50 dark:bg-green-900/30 px-3 py-2 text-sm text-green-700 dark:text-green-400">
+              Property data found and pre-filled into the form.
+            </div>
+          )}
+          {result.chimnieStatus === 'not_found' && (
+            <div className="mb-4 rounded-lg bg-amber-50 dark:bg-amber-900/30 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+              {result.chimnieMessage || 'Property not found — seller will fill in all fields manually.'}
+            </div>
+          )}
+
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Share this link with your client:</p>
           <div className="flex gap-2">
             <input
@@ -286,15 +387,94 @@ function CreateSessionModal({ onClose, onCreated }: { onClose: () => void; onCre
         )}
         <div className="space-y-4">
           <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Property</p>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Property Address <span className="text-red-400">*</span></label>
-            <input
-              value={propertyAddress}
-              onChange={e => setPropertyAddress(e.target.value)}
-              className="w-full rounded-lg border dark:border-gray-600 px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
-              placeholder="e.g. 42 Acacia Avenue, London"
-            />
-          </div>
+
+          {/* Address autocomplete or manual entry */}
+          {!manualEntry ? (
+            <div ref={dropdownRef} className="relative">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Property Address <span className="text-red-400">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  value={addressQuery}
+                  onChange={e => handleAddressInput(e.target.value)}
+                  onFocus={() => {
+                    if (autocompleteResults && autocompleteResults.addresses.length > 0) {
+                      setShowDropdown(true);
+                    }
+                  }}
+                  className="w-full rounded-lg border dark:border-gray-600 px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
+                  placeholder="Start typing an address..."
+                />
+                {isSearching && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600" />
+                  </div>
+                )}
+              </div>
+
+              {/* Autocomplete dropdown */}
+              {showDropdown && autocompleteResults && (
+                <div className="absolute z-10 mt-1 w-full rounded-lg border dark:border-gray-600 bg-white dark:bg-gray-700 shadow-lg max-h-60 overflow-y-auto">
+                  {autocompleteResults.addresses.map((addr, i) => (
+                    <button
+                      key={i}
+                      onClick={() => selectAddress(addr)}
+                      className="w-full px-3 py-2.5 text-left text-sm text-gray-900 dark:text-white hover:bg-blue-50 dark:hover:bg-blue-900/30 border-b dark:border-gray-600 last:border-b-0"
+                    >
+                      {autocompleteResults.highlights[i] ? (
+                        <span dangerouslySetInnerHTML={{ __html: autocompleteResults.highlights[i] }} />
+                      ) : (
+                        addr
+                      )}
+                    </button>
+                  ))}
+                  <button
+                    onClick={switchToManualEntry}
+                    className="w-full px-3 py-2.5 text-left text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600 italic"
+                  >
+                    Can&apos;t find my address — enter manually
+                  </button>
+                </div>
+              )}
+
+              {/* Show "can't find" link after typing enough with no selection */}
+              {addressQuery.length >= 3 && !showDropdown && !propertyAddress && (
+                <button
+                  onClick={switchToManualEntry}
+                  className="mt-1 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-600"
+                >
+                  Can&apos;t find your address? Enter it manually
+                </button>
+              )}
+
+              {/* Show selected address */}
+              {propertyAddress && (
+                <p className="mt-1 text-xs text-green-600 dark:text-green-400">
+                  Selected: {propertyAddress}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Property Address <span className="text-red-400">*</span>
+              </label>
+              <input
+                value={propertyAddress}
+                onChange={e => setPropertyAddress(e.target.value)}
+                className="w-full rounded-lg border dark:border-gray-600 px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
+                placeholder="e.g. 42 Acacia Avenue, London"
+              />
+              <button
+                onClick={() => { setManualEntry(false); setAddressQuery(''); setPropertyAddress(''); }}
+                className="mt-1 text-xs text-blue-600 hover:text-blue-700"
+              >
+                Switch back to address search
+              </button>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Postcode <span className="text-red-400">*</span></label>
             <input

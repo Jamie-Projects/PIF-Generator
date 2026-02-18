@@ -4,284 +4,370 @@
  * Fetches property data from Chimnie (https://docs.chimnie.com) and maps it
  * to BASPI form fields for prepopulation.
  *
- * IMPORTANT: The endpoint paths below are based on common UK property data API
- * patterns. Verify against docs.chimnie.com and update if needed.
+ * Uses Core + Plus tier (2 credits per lookup): fields=property,surroundings,plus
  */
 
-const CHIMNIE_BASE_URL = process.env.CHIMNIE_API_URL || 'https://api.chimnie.com/v1';
+const CHIMNIE_BASE_URL = process.env.CHIMNIE_API_URL || 'https://api.chimnie.com';
 const CHIMNIE_API_KEY = process.env.CHIMNIE_API_KEY || '';
 
-interface ChimnieAddress {
-  uprn: string;
-  address: string;
-  addressLine1: string;
-  addressLine2?: string;
-  city: string;
-  county?: string;
-  postcode: string;
+// --- Response types matching real Chimnie API ---
+
+export interface ChimnieAutocompleteResponse {
+  addresses: string[];
+  highlights: string[];
+  session: string;
 }
 
-interface ChimniePropertyData {
-  uprn?: string;
-  address?: {
-    line1?: string;
-    line2?: string;
-    city?: string;
-    county?: string;
-    postcode?: string;
+export interface ChimniePostcodeResponse {
+  addresses: string[];
+  session: string;
+}
+
+export interface ChimniePropertyResponse {
+  property: {
+    attributes: {
+      status: {
+        listed_building?: { is_listed?: boolean };
+        listed_buildings?: { grade?: string }[];
+        date_of_construction_declared_and_predicted?: string;
+      };
+      indoor: {
+        bedrooms_declared_and_predicted?: number;
+        bathrooms_declared_and_predicted?: number;
+        extension?: boolean;
+        floor_area?: number;
+      };
+      outdoor: {
+        shed?: boolean;
+        garage?: boolean;
+      };
+    };
+    bills: {
+      energy: {
+        current_energy_rating_declared_only?: string;
+        expiry_date?: string;
+        mains_gas_flag_declared_only?: boolean;
+        heating_types?: string[];
+      };
+      telecoms: {
+        maximum_broadband_speed?: number;
+      };
+    };
+    ownership: {
+      lease_type?: string;
+      occupancy_status?: string;
+    };
+    value?: {
+      sale?: Record<string, unknown>;
+    };
   };
-  property?: {
-    type?: string; // detached, semi_detached, terraced, flat, etc.
-    tenure?: string; // freehold, leasehold
-    yearBuilt?: number;
-    bedrooms?: number;
-    bathrooms?: number;
-    stories?: number;
-    floorArea?: number;
+  surroundings: {
+    environment: {
+      flood: {
+        flood_risk_rivers_sea?: number;
+        distance_from_coast?: number;
+        distance_from_river?: number;
+      };
+      subsidence: {
+        subsidence_risk?: string;
+      };
+      land: {
+        radon?: { affected?: boolean };
+        in_coal_mining_reporting_area?: boolean;
+        historic_landfill?: { affected?: boolean };
+      };
+    };
   };
-  epc?: {
-    rating?: string; // A-G
-    certificateNumber?: string;
-    expiryDate?: string;
+  plus: {
+    property: {
+      attributes: {
+        status: {
+          address?: string;
+          postcode?: string;
+          property_type?: string;
+          region?: string;
+        };
+      };
+    };
   };
-  flood?: {
-    riverRisk?: string; // high, medium, low, very_low
-    surfaceWaterRisk?: string;
-    hasFlooded?: boolean;
+  chimnie_data?: {
+    credits_used?: number;
+    credits_remaining?: number;
   };
-  environment?: {
-    listedBuilding?: boolean;
-    listedGrade?: string;
-    conservationArea?: boolean;
-    treePreservation?: boolean;
-    coastalErosionRisk?: boolean;
-    radonAffected?: boolean;
-    miningArea?: boolean;
-    contamination?: boolean;
+}
+
+// --- Normalised internal types ---
+
+export interface NormalisedPropertyData {
+  address?: string;
+  postcode?: string;
+  propertyType?: string;
+  region?: string;
+  tenure?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  yearBuilt?: string;
+  hasExtension?: boolean;
+  floorArea?: number;
+  epcRating?: string;
+  epcExpiry?: string;
+  gasConnected?: boolean;
+  heatingTypes?: string[];
+  broadbandSpeed?: number;
+  listedBuilding?: boolean;
+  listedGrade?: string;
+  floodRiskRiversSea?: number;
+  distanceFromCoast?: number;
+  distanceFromRiver?: number;
+  subsidenceRisk?: string;
+  radonAffected?: boolean;
+  coalMiningArea?: boolean;
+  landfillAffected?: boolean;
+  creditsUsed?: number;
+  creditsRemaining?: number;
+}
+
+function getHeaders(): Record<string, string> {
+  return {
+    'Authorization': `Bearer ${CHIMNIE_API_KEY}`,
+    'Accept': 'application/json',
   };
-  utilities?: {
-    broadbandType?: string;
-    mobileSignal?: string;
-    gasConnected?: boolean;
-    waterSupplier?: string;
-    sewerageType?: string;
-  };
-  leasehold?: {
-    remainingYears?: number;
-    groundRent?: string;
-    serviceCharge?: string;
-    managementCompany?: string;
-  };
-  insurance?: {
-    previousClaims?: boolean;
-    rebuildCost?: number;
-  };
-  // Raw response for debugging
-  _raw?: Record<string, unknown>;
 }
 
 /**
- * Search for addresses by postcode using Chimnie's address autocomplete
+ * Autocomplete address search — free when followed by a property lookup within the same session.
  */
-export async function searchAddresses(postcode: string): Promise<ChimnieAddress[]> {
+export async function autocompleteAddress(
+  query: string,
+  session?: string
+): Promise<ChimnieAutocompleteResponse> {
+  if (!CHIMNIE_API_KEY) {
+    throw new Error('CHIMNIE_API_KEY not configured');
+  }
+
+  const params = new URLSearchParams({ max_results: '7' });
+  if (session) params.set('session', session);
+
+  const response = await fetch(
+    `${CHIMNIE_BASE_URL}/residential/autocomplete/${encodeURIComponent(query)}?${params}`,
+    { headers: getHeaders() }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Chimnie autocomplete failed: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Search addresses by postcode.
+ */
+export async function searchPostcode(postcode: string): Promise<ChimniePostcodeResponse> {
   if (!CHIMNIE_API_KEY) {
     throw new Error('CHIMNIE_API_KEY not configured');
   }
 
   const response = await fetch(
-    `${CHIMNIE_BASE_URL}/address/search?postcode=${encodeURIComponent(postcode)}`,
-    {
-      headers: {
-        'x-api-key': CHIMNIE_API_KEY,
-        'Accept': 'application/json',
-      },
-    }
+    `${CHIMNIE_BASE_URL}/residential/postcode/${encodeURIComponent(postcode)}`,
+    { headers: getHeaders() }
   );
 
   if (!response.ok) {
-    throw new Error(`Chimnie address search failed: ${response.status}`);
+    throw new Error(`Chimnie postcode search failed: ${response.status}`);
   }
 
-  const data = await response.json();
-
-  // Map Chimnie's response to our format
-  // Adjust field names based on actual API response
-  const results = Array.isArray(data) ? data : data.results || data.addresses || [];
-  return results.map((item: Record<string, unknown>) => ({
-    uprn: String(item.uprn || item.UPRN || ''),
-    address: String(item.address || item.full_address || item.singleLineAddress || ''),
-    addressLine1: String(item.addressLine1 || item.address_line_1 || item.line1 || ''),
-    addressLine2: String(item.addressLine2 || item.address_line_2 || item.line2 || ''),
-    city: String(item.city || item.town || item.post_town || ''),
-    county: String(item.county || ''),
-    postcode: String(item.postcode || postcode),
-  }));
+  return response.json();
 }
 
 /**
- * Fetch full property data by UPRN
+ * Get property data by full address string. Primary lookup method.
+ * Uses Core + Plus fields (2 credits).
  */
-export async function getPropertyData(uprn: string): Promise<ChimniePropertyData> {
+export async function getPropertyByAddress(
+  address: string,
+  autocompleteSession?: string
+): Promise<ChimniePropertyResponse> {
+  if (!CHIMNIE_API_KEY) {
+    throw new Error('CHIMNIE_API_KEY not configured');
+  }
+
+  const params = new URLSearchParams({ fields: 'property,surroundings,plus' });
+  if (autocompleteSession) params.set('autocomplete_session', autocompleteSession);
+
+  const response = await fetch(
+    `${CHIMNIE_BASE_URL}/residential/address/${encodeURIComponent(address)}?${params}`,
+    { headers: getHeaders() }
+  );
+
+  if (response.status === 404) {
+    const error = new Error('Property not found') as Error & { status: number };
+    error.status = 404;
+    throw error;
+  }
+
+  if (!response.ok) {
+    throw new Error(`Chimnie address lookup failed: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Get property data by UPRN. Fallback lookup method.
+ * Uses Core + Plus fields (2 credits).
+ */
+export async function getPropertyByUprn(uprn: string): Promise<ChimniePropertyResponse> {
   if (!CHIMNIE_API_KEY) {
     throw new Error('CHIMNIE_API_KEY not configured');
   }
 
   const response = await fetch(
-    `${CHIMNIE_BASE_URL}/property/${encodeURIComponent(uprn)}`,
-    {
-      headers: {
-        'x-api-key': CHIMNIE_API_KEY,
-        'Accept': 'application/json',
-      },
-    }
+    `${CHIMNIE_BASE_URL}/residential/uprn/${encodeURIComponent(uprn)}?fields=property,surroundings,plus`,
+    { headers: getHeaders() }
   );
 
-  if (!response.ok) {
-    throw new Error(`Chimnie property lookup failed: ${response.status}`);
+  if (response.status === 404) {
+    const error = new Error('Property not found') as Error & { status: number };
+    error.status = 404;
+    throw error;
   }
 
-  const raw = await response.json();
-  return normaliseChimnieResponse(raw);
+  if (!response.ok) {
+    throw new Error(`Chimnie UPRN lookup failed: ${response.status}`);
+  }
+
+  return response.json();
 }
 
 /**
- * Normalise Chimnie's raw API response into our structured format.
- * This handles different possible field naming conventions.
+ * Normalise a raw Chimnie API response into a flat structure for easier mapping.
  */
-function normaliseChimnieResponse(raw: Record<string, unknown>): ChimniePropertyData {
-  // Chimnie may nest data differently — this handles common patterns
-  const prop = (raw.property || raw.attributes || raw) as Record<string, unknown>;
-  const epc = (raw.epc || raw.energy || {}) as Record<string, unknown>;
-  const flood = (raw.flood || raw.flooding || {}) as Record<string, unknown>;
-  const env = (raw.environment || raw.environmental || raw.hazards || {}) as Record<string, unknown>;
-  const utils = (raw.utilities || raw.services || {}) as Record<string, unknown>;
-  const lease = (raw.leasehold || raw.lease || {}) as Record<string, unknown>;
-  const addr = (raw.address || {}) as Record<string, unknown>;
-  const ins = (raw.insurance || {}) as Record<string, unknown>;
+export function normaliseChimnieResponse(raw: ChimniePropertyResponse): NormalisedPropertyData {
+  const p = raw.property;
+  const s = raw.surroundings;
+  const pl = raw.plus;
+
+  const listedBuildings = p.attributes.status.listed_buildings || [];
+  const listedGrade = listedBuildings.length > 0 ? listedBuildings[0].grade : undefined;
 
   return {
-    uprn: String(raw.uprn || raw.UPRN || ''),
-    address: {
-      line1: String(addr.line1 || addr.addressLine1 || addr.address_line_1 || ''),
-      line2: String(addr.line2 || addr.addressLine2 || addr.address_line_2 || ''),
-      city: String(addr.city || addr.town || addr.post_town || ''),
-      county: String(addr.county || ''),
-      postcode: String(addr.postcode || ''),
-    },
-    property: {
-      type: normalisePropertyType(String(prop.type || prop.property_type || prop.propertyType || '')),
-      tenure: normaliseTenure(String(prop.tenure || '')),
-      yearBuilt: toNumber(prop.yearBuilt || prop.year_built || prop.constructionYear),
-      bedrooms: toNumber(prop.bedrooms || prop.num_bedrooms),
-      bathrooms: toNumber(prop.bathrooms || prop.num_bathrooms),
-      stories: toNumber(prop.stories || prop.floors || prop.storeys),
-      floorArea: toNumber(prop.floorArea || prop.floor_area || prop.totalFloorArea),
-    },
-    epc: {
-      rating: normaliseEpcRating(String(epc.rating || epc.currentRating || epc.current_energy_rating || '')),
-      certificateNumber: String(epc.certificateNumber || epc.certificate_number || epc.lmkKey || ''),
-      expiryDate: String(epc.expiryDate || epc.expiry_date || ''),
-    },
-    flood: {
-      riverRisk: String(flood.riverRisk || flood.river_risk || flood.fluvialRisk || ''),
-      surfaceWaterRisk: String(flood.surfaceWaterRisk || flood.surface_water_risk || ''),
-      hasFlooded: Boolean(flood.hasFlooded || flood.has_flooded || flood.previousFlooding),
-    },
-    environment: {
-      listedBuilding: Boolean(env.listedBuilding || env.listed_building || env.isListed),
-      listedGrade: String(env.listedGrade || env.listed_grade || ''),
-      conservationArea: Boolean(env.conservationArea || env.conservation_area),
-      treePreservation: Boolean(env.treePreservation || env.tree_preservation_order || env.tpo),
-      coastalErosionRisk: Boolean(env.coastalErosion || env.coastal_erosion),
-      radonAffected: Boolean(env.radon || env.radonAffected),
-      miningArea: Boolean(env.mining || env.miningArea),
-      contamination: Boolean(env.contamination || env.contaminated),
-    },
-    utilities: {
-      broadbandType: String(utils.broadband || utils.broadbandType || ''),
-      mobileSignal: String(utils.mobileSignal || utils.mobile_signal || ''),
-      gasConnected: Boolean(utils.gasConnected || utils.gas_connected || utils.mainsGas),
-      waterSupplier: String(utils.waterSupplier || utils.water_supplier || ''),
-      sewerageType: String(utils.sewerage || utils.sewerageType || ''),
-    },
-    leasehold: {
-      remainingYears: toNumber(lease.remainingYears || lease.remaining_years || lease.leaseRemaining),
-      groundRent: String(lease.groundRent || lease.ground_rent || ''),
-      serviceCharge: String(lease.serviceCharge || lease.service_charge || ''),
-      managementCompany: String(lease.managementCompany || lease.management_company || ''),
-    },
-    insurance: {
-      previousClaims: Boolean(ins.previousClaims || ins.previous_claims),
-      rebuildCost: toNumber(ins.rebuildCost || ins.rebuild_cost),
-    },
-    _raw: raw,
+    // Plus fields
+    address: pl?.property?.attributes?.status?.address,
+    postcode: pl?.property?.attributes?.status?.postcode,
+    propertyType: pl?.property?.attributes?.status?.property_type,
+    region: pl?.property?.attributes?.status?.region,
+
+    // Core property fields
+    tenure: p.ownership?.lease_type,
+    bedrooms: p.attributes.indoor?.bedrooms_declared_and_predicted,
+    bathrooms: p.attributes.indoor?.bathrooms_declared_and_predicted,
+    yearBuilt: p.attributes.status?.date_of_construction_declared_and_predicted,
+    hasExtension: p.attributes.indoor?.extension,
+    floorArea: p.attributes.indoor?.floor_area,
+
+    // Energy / bills
+    epcRating: normaliseEpcRating(p.bills?.energy?.current_energy_rating_declared_only || ''),
+    epcExpiry: p.bills?.energy?.expiry_date,
+    gasConnected: p.bills?.energy?.mains_gas_flag_declared_only,
+    heatingTypes: p.bills?.energy?.heating_types,
+    broadbandSpeed: p.bills?.telecoms?.maximum_broadband_speed,
+
+    // Environment - listed building
+    listedBuilding: p.attributes.status?.listed_building?.is_listed,
+    listedGrade,
+
+    // Surroundings
+    floodRiskRiversSea: s.environment?.flood?.flood_risk_rivers_sea,
+    distanceFromCoast: s.environment?.flood?.distance_from_coast,
+    distanceFromRiver: s.environment?.flood?.distance_from_river,
+    subsidenceRisk: s.environment?.subsidence?.subsidence_risk,
+    radonAffected: s.environment?.land?.radon?.affected,
+    coalMiningArea: s.environment?.land?.in_coal_mining_reporting_area,
+    landfillAffected: s.environment?.land?.historic_landfill?.affected,
+
+    // Credits
+    creditsUsed: raw.chimnie_data?.credits_used,
+    creditsRemaining: raw.chimnie_data?.credits_remaining,
   };
 }
 
 /**
- * Map Chimnie property data to BASPI form field values.
+ * Map normalised Chimnie property data to BASPI form field values.
  * Returns a map of sectionKey -> { fieldKey: value }
  */
-export function mapToBaspiFields(data: ChimniePropertyData): Record<string, Record<string, unknown>> {
+export function mapToBaspiFields(data: NormalisedPropertyData): Record<string, Record<string, unknown>> {
   const fields: Record<string, Record<string, unknown>> = {};
 
   // Property Details
   const propDetails: Record<string, unknown> = {};
-  if (data.address?.line1) propDetails.address_line1 = data.address.line1;
-  if (data.address?.line2) propDetails.address_line2 = data.address.line2;
-  if (data.address?.city) propDetails.city = data.address.city;
-  if (data.address?.county) propDetails.county = data.address.county;
-  if (data.address?.postcode) propDetails.postcode = data.address.postcode;
-  if (data.property?.type) propDetails.property_type = data.property.type;
-  if (data.property?.tenure) propDetails.tenure = data.property.tenure;
-  if (data.property?.bedrooms) propDetails.num_bedrooms = data.property.bedrooms;
-  if (data.property?.bathrooms) propDetails.num_bathrooms = data.property.bathrooms;
-  if (data.property?.stories) propDetails.num_stories = data.property.stories;
-  if (data.property?.yearBuilt) propDetails.year_built = String(data.property.yearBuilt);
+  if (data.propertyType) propDetails.property_type = normalisePropertyType(data.propertyType);
+  if (data.tenure) propDetails.tenure = normaliseTenure(data.tenure);
+  if (data.bedrooms !== undefined) propDetails.num_bedrooms = data.bedrooms;
+  if (data.bathrooms !== undefined) propDetails.num_bathrooms = data.bathrooms;
+  if (data.yearBuilt) propDetails.year_built = data.yearBuilt;
+  if (data.postcode) propDetails.postcode = data.postcode;
   if (Object.keys(propDetails).length > 0) fields.property_details = propDetails;
+
+  // Alterations
+  const alterations: Record<string, unknown> = {};
+  if (data.hasExtension !== undefined) alterations.has_extensions = data.hasExtension;
+  if (Object.keys(alterations).length > 0) fields.alterations = alterations;
 
   // Specialist Issues
   const specialist: Record<string, unknown> = {};
-  if (data.flood?.hasFlooded !== undefined) specialist.has_flooding = data.flood.hasFlooded;
-  if (data.environment?.listedBuilding !== undefined) {
-    specialist.has_listed_building = data.environment.listedBuilding;
-    if (data.environment.listedBuilding && data.environment.listedGrade) {
-      specialist.listed_details = `Listed Grade ${data.environment.listedGrade}${data.environment.conservationArea ? ', in a conservation area' : ''}`;
+  if (data.floodRiskRiversSea !== undefined) {
+    specialist.has_flooding = data.floodRiskRiversSea > 0;
+    if (data.floodRiskRiversSea > 0) {
+      const parts: string[] = [`Flood risk (rivers/sea): ${data.floodRiskRiversSea}%`];
+      if (data.distanceFromRiver !== undefined) parts.push(`${data.distanceFromRiver}m from nearest river`);
+      if (data.distanceFromCoast !== undefined) parts.push(`${data.distanceFromCoast}m from coast`);
+      specialist.flooding_details = parts.join('. ');
     }
   }
-  if (data.environment?.coastalErosionRisk !== undefined) specialist.has_coastal_erosion = data.environment.coastalErosionRisk;
-  if (data.environment?.radonAffected !== undefined) specialist.has_radon = data.environment.radonAffected ? 'yes' : 'no';
-  if (data.environment?.miningArea !== undefined) specialist.has_mining = data.environment.miningArea ? 'yes' : 'no';
+  if (data.subsidenceRisk !== undefined) {
+    specialist.has_subsidence = data.subsidenceRisk !== 'none' && data.subsidenceRisk !== '';
+  }
+  if (data.radonAffected !== undefined) specialist.has_radon = data.radonAffected ? 'yes' : 'no';
+  if (data.coalMiningArea !== undefined) specialist.has_mining = data.coalMiningArea ? 'yes' : 'no';
+  if (data.listedBuilding !== undefined) {
+    specialist.has_listed_building = data.listedBuilding;
+    if (data.listedBuilding && data.listedGrade) {
+      specialist.listed_details = `Listed Grade ${data.listedGrade}`;
+    }
+  }
+  if (data.distanceFromCoast !== undefined) {
+    specialist.has_coastal_erosion = data.distanceFromCoast < 1000;
+  }
   if (Object.keys(specialist).length > 0) fields.specialist_issues = specialist;
 
   // Environmental
   const environmental: Record<string, unknown> = {};
-  if (data.environment?.contamination !== undefined) environmental.has_contamination = data.environment.contamination;
-  if (data.environment?.treePreservation !== undefined) environmental.has_trees = data.environment.treePreservation;
+  if (data.landfillAffected !== undefined) environmental.has_contamination = data.landfillAffected;
   if (Object.keys(environmental).length > 0) fields.environmental = environmental;
 
   // Utilities & Services
   const utilities: Record<string, unknown> = {};
-  if (data.utilities?.gasConnected !== undefined) utilities.gas_connected = data.utilities.gasConnected;
-  if (data.utilities?.waterSupplier) utilities.water_supplier = data.utilities.waterSupplier;
-  if (data.utilities?.sewerageType) utilities.sewerage_connection = normaliseSewerageType(data.utilities.sewerageType);
-  if (data.utilities?.broadbandType) utilities.broadband_type = normaliseBroadbandType(data.utilities.broadbandType);
-  if (data.utilities?.mobileSignal) utilities.mobile_signal = normaliseMobileSignal(data.utilities.mobileSignal);
+  if (data.gasConnected !== undefined) utilities.gas_connected = data.gasConnected;
+  if (data.heatingTypes && data.heatingTypes.length > 0) {
+    utilities.heating_type = normaliseHeatingType(data.heatingTypes);
+  }
+  if (data.broadbandSpeed !== undefined) {
+    utilities.broadband_type = deriveBroadbandType(data.broadbandSpeed);
+  }
   if (Object.keys(utilities).length > 0) fields.utilities_services = utilities;
 
   // Energy
   const energy: Record<string, unknown> = {};
-  if (data.epc?.rating) energy.epc_rating = data.epc.rating;
-  if (data.epc?.certificateNumber) energy.epc_certificate_number = data.epc.certificateNumber;
-  if (data.epc?.expiryDate) energy.epc_expiry_date = data.epc.expiryDate;
+  if (data.epcRating) energy.epc_rating = data.epcRating;
+  if (data.epcExpiry) energy.epc_expiry_date = data.epcExpiry;
   if (Object.keys(energy).length > 0) fields.energy = energy;
 
   // Additional Legal (leasehold)
   const legal: Record<string, unknown> = {};
-  if (data.leasehold?.remainingYears) legal.has_leasehold_info = data.leasehold.remainingYears;
-  if (data.leasehold?.groundRent) legal.ground_rent = data.leasehold.groundRent;
-  if (data.leasehold?.serviceCharge) legal.service_charge = data.leasehold.serviceCharge;
-  if (data.leasehold?.managementCompany) legal.management_company = data.leasehold.managementCompany;
+  if (data.tenure && data.tenure.toLowerCase().includes('leasehold')) {
+    legal.has_leasehold_info = true;
+  }
   if (Object.keys(legal).length > 0) fields.additional_legal = legal;
 
   return fields;
@@ -302,12 +388,6 @@ export function estimateTimeSaved(fieldCount: number): number {
 }
 
 // --- Normalisation helpers ---
-
-function toNumber(val: unknown): number | undefined {
-  if (val === undefined || val === null || val === '') return undefined;
-  const n = Number(val);
-  return isNaN(n) ? undefined : n;
-}
 
 function normalisePropertyType(raw: string): string {
   const lower = raw.toLowerCase().replace(/[^a-z]/g, '');
@@ -335,29 +415,18 @@ function normaliseEpcRating(raw: string): string {
   return '';
 }
 
-function normaliseSewerageType(raw: string): string {
-  const lower = raw.toLowerCase();
-  if (lower.includes('mains')) return 'mains';
-  if (lower.includes('septic')) return 'septic_tank';
-  if (lower.includes('cesspit') || lower.includes('cesspool')) return 'cesspit';
-  if (lower.includes('treatment')) return 'treatment_plant';
-  return '';
+function normaliseHeatingType(types: string[]): string {
+  const joined = types.join(' ').toLowerCase();
+  if (joined.includes('gas')) return 'gas';
+  if (joined.includes('electric')) return 'electric';
+  if (joined.includes('oil')) return 'oil';
+  if (joined.includes('heat pump') || joined.includes('heatpump')) return 'heat_pump';
+  return types[0] || '';
 }
 
-function normaliseBroadbandType(raw: string): string {
-  const lower = raw.toLowerCase();
-  if (lower.includes('fttp') || lower.includes('full fibre')) return 'fibre_full';
-  if (lower.includes('fttc') || lower.includes('fibre')) return 'fibre_cabinet';
-  if (lower.includes('cable')) return 'cable';
-  if (lower.includes('adsl')) return 'adsl';
-  return '';
-}
-
-function normaliseMobileSignal(raw: string): string {
-  const lower = raw.toLowerCase();
-  if (lower.includes('good') || lower.includes('strong')) return 'good';
-  if (lower.includes('moderate') || lower.includes('average')) return 'moderate';
-  if (lower.includes('poor') || lower.includes('weak')) return 'poor';
-  if (lower.includes('none') || lower.includes('no')) return 'none';
-  return '';
+function deriveBroadbandType(speedMbps: number): string {
+  if (speedMbps >= 900) return 'fibre_full';
+  if (speedMbps >= 30) return 'fibre_cabinet';
+  if (speedMbps >= 10) return 'cable';
+  return 'adsl';
 }

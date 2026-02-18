@@ -5,6 +5,7 @@ import { BASPI_SECTIONS, FormField } from '@/lib/baspiSchema';
 import QuestionField from './QuestionField';
 import SaveIndicator from './SaveIndicator';
 import CompletionSummary from './CompletionSummary';
+import WelcomePage from './WelcomePage';
 import PrepopulationConsent from './PrepopulationConsent';
 
 interface SectionData {
@@ -51,17 +52,24 @@ export default function FormWizard({
   const [isCompleted, setIsCompleted] = useState(initialIsCompleted);
   const [showSectionNav, setShowSectionNav] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [showPrepopulation, setShowPrepopulation] = useState(() => {
-    // Show prepopulation only for fresh forms (step 0, no data yet)
-    if (initialIsCompleted || initialStep > 0) return false;
-    const hasAnyData = initialSections.some(s => {
+  const saveTimer = useRef<NodeJS.Timeout | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Determine if data was already prepopulated server-side
+  const hasPrepopulatedData = useMemo(() => {
+    return initialSections.some(s => {
       const data = s.data as Record<string, unknown>;
       return Object.values(data).some(v => v !== undefined && v !== null && v !== '');
     });
-    return !hasAnyData;
+  }, [initialSections]);
+
+  // Flow state: welcome -> (prepopulation if needed) -> form
+  const [showWelcome, setShowWelcome] = useState(() => {
+    if (initialIsCompleted || initialStep > 0) return false;
+    return !hasPrepopulatedData || initialStep === 0;
   });
-  const saveTimer = useRef<NodeJS.Timeout | null>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
+
+  const [showPrepopulation, setShowPrepopulation] = useState(false);
 
   const currentSectionDef = BASPI_SECTIONS[currentStep];
   const currentSection = sections.find(s => s.sectionKey === currentSectionDef?.key);
@@ -308,6 +316,17 @@ export default function FormWizard({
     await saveSection('property_details', seedData, 0);
   }, [form, sections, saveSection]);
 
+  const handleWelcomeGetStarted = () => {
+    setShowWelcome(false);
+    // If data was already prepopulated server-side, go straight to form
+    if (hasPrepopulatedData) {
+      // Data is already in sections, just proceed
+      return;
+    }
+    // Otherwise show prepopulation consent (address search)
+    setShowPrepopulation(true);
+  };
+
   const handlePrepopulationAccept = async (prepopulated: Record<string, Record<string, unknown>>) => {
     // Merge prepopulated data into sections
     setSections(prev => prev.map(s => {
@@ -334,11 +353,23 @@ export default function FormWizard({
     setShowPrepopulation(false);
   };
 
-  // Show prepopulation consent flow
+  // Show welcome page
+  if (showWelcome) {
+    return (
+      <WelcomePage
+        companyName={companyName}
+        hasPrepopulatedData={hasPrepopulatedData}
+        onGetStarted={handleWelcomeGetStarted}
+      />
+    );
+  }
+
+  // Show prepopulation consent flow (only if not already prepopulated server-side)
   if (showPrepopulation) {
     return (
       <PrepopulationConsent
         postcode={form.postcode}
+        address={form.address}
         onAccept={handlePrepopulationAccept}
         onSkip={handleSkipPrepopulation}
       />
