@@ -80,7 +80,7 @@ describe('BASPI Schema', () => {
       for (const field of section.fields) {
         expect(field.key).toBeTruthy();
         expect(field.label).toBeTruthy();
-        expect(['text', 'textarea', 'boolean', 'date', 'select', 'number']).toContain(field.type);
+        expect(['text', 'textarea', 'boolean', 'date', 'select', 'number', 'signature']).toContain(field.type);
       }
     }
   });
@@ -135,7 +135,6 @@ describe('BASPI Schema', () => {
       .map(f => f.key);
 
     expect(requiredKeys).toContain('declaration_confirmed');
-    expect(requiredKeys).toContain('declaration_date');
     expect(requiredKeys).toContain('declaration_name');
   });
 });

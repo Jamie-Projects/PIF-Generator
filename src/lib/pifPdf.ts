@@ -66,6 +66,12 @@ export function generatePifPdf(
   for (const sectionDef of BASPI_SECTIONS) {
     const data = dataMap[sectionDef.key] || {};
 
+    // Handle declaration section with signature block
+    if (sectionDef.key === 'declaration') {
+      y = renderSignatureBlock(doc, data, y, pageWidth);
+      continue;
+    }
+
     // Check if we need a new page
     if (y > 240) {
       doc.addPage();
@@ -146,6 +152,167 @@ export function generatePifPdf(
   return doc;
 }
 
+function renderSignatureBlock(
+  doc: jsPDF,
+  data: Record<string, unknown>,
+  startY: number,
+  pageWidth: number
+): number {
+  // Always start on a new page for the declaration
+  doc.addPage();
+  let y = 28;
+
+  // Section header
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(30, 64, 175);
+  doc.text('Declaration & Electronic Signature', pageWidth / 2, y, { align: 'center' });
+  y += 12;
+
+  // Declaration text
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(50, 50, 50);
+  const declarationText = 'I confirm that the information I have provided in this Property Information Form is accurate and complete to the best of my knowledge. I understand that this information will be relied upon by the buyer and their conveyancer, and I will notify my solicitor of any changes.';
+  const lines = doc.splitTextToSize(declarationText, pageWidth - 40);
+  doc.text(lines, 20, y);
+  y += lines.length * 5 + 8;
+
+  // Confirmed status
+  const confirmed = data.declaration_confirmed === true;
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(confirmed ? 21 : 185, confirmed ? 128 : 28, confirmed ? 61 : 28);
+  doc.text(confirmed ? 'CONFIRMED' : 'NOT CONFIRMED', 20, y);
+  y += 12;
+
+  // Signature box
+  const signedName = String(data.declaration_name || '');
+  const boxX = 30;
+  const boxW = pageWidth - 60;
+
+  doc.setDrawColor(180, 180, 180);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(boxX, y, boxW, 40, 3, 3);
+
+  if (signedName) {
+    // Signature name in italic (simulates cursive in PDF)
+    doc.setFont('helvetica', 'bolditalic');
+    doc.setFontSize(28);
+    doc.setTextColor(30, 30, 30);
+    doc.text(signedName, pageWidth / 2, y + 22, { align: 'center' });
+  }
+
+  // Signature line
+  const lineX1 = boxX + 20;
+  const lineX2 = boxX + boxW - 20;
+  doc.setDrawColor(100, 100, 100);
+  doc.setLineWidth(0.3);
+  doc.line(lineX1, y + 30, lineX2, y + 30);
+
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(130, 130, 130);
+  doc.text('Electronic Signature', pageWidth / 2, y + 35, { align: 'center' });
+
+  y += 50;
+
+  // Audit trail
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.3);
+  doc.line(20, y, pageWidth - 20, y);
+  y += 8;
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(80, 80, 80);
+  doc.text('Certificate of Completion', 20, y);
+  y += 8;
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 100, 100);
+
+  const timestamp = data.signature_timestamp
+    ? new Date(String(data.signature_timestamp)).toLocaleString('en-GB', {
+        day: 'numeric', month: 'long', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        timeZoneName: 'short',
+      })
+    : 'Not recorded';
+
+  const auditRows = [
+    ['Signed by', signedName || 'Not provided'],
+    ['Date & Time', timestamp],
+    ['IP Address', String(data.signature_ip || 'Not recorded')],
+    ['Browser', formatUserAgent(String(data.signature_useragent || ''))],
+    ['Screen Resolution', String(data.signature_screen || 'Not recorded')],
+    ['Timezone', String(data.signature_timezone || 'Not recorded')],
+    ['Language', String(data.signature_language || 'Not recorded')],
+  ];
+
+  autoTable(doc, {
+    startY: y,
+    body: auditRows,
+    theme: 'plain',
+    bodyStyles: {
+      fontSize: 8,
+      cellPadding: 2,
+      textColor: [80, 80, 80],
+    },
+    columnStyles: {
+      0: { cellWidth: 40, fontStyle: 'bold', textColor: [100, 100, 100] },
+      1: { cellWidth: 'auto' },
+    },
+    margin: { left: 20, right: 20 },
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  y = (doc as any).lastAutoTable.finalY + 8;
+
+  // Disclaimer
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(150, 150, 150);
+  const disclaimer = 'This electronic signature is legally binding and equivalent to a handwritten signature under the Electronic Communications Act 2000 and the eIDAS Regulation. The audit trail above provides a tamper-evident record of the signing event.';
+  const disclaimerLines = doc.splitTextToSize(disclaimer, pageWidth - 40);
+  doc.text(disclaimerLines, 20, y);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (doc as any).lastAutoTable.finalY + 20;
+}
+
+/**
+ * Parse user agent into a readable browser string
+ */
+function formatUserAgent(ua: string): string {
+  if (!ua) return 'Not recorded';
+
+  // Try to extract browser name and version
+  const browsers = [
+    { pattern: /Chrome\/(\d+)/, name: 'Chrome' },
+    { pattern: /Firefox\/(\d+)/, name: 'Firefox' },
+    { pattern: /Safari\/(\d+)/, name: 'Safari' },
+    { pattern: /Edg\/(\d+)/, name: 'Edge' },
+    { pattern: /OPR\/(\d+)/, name: 'Opera' },
+  ];
+
+  for (const b of browsers) {
+    const match = ua.match(b.pattern);
+    if (match) {
+      const os = ua.includes('Windows') ? 'Windows'
+        : ua.includes('Mac') ? 'macOS'
+        : ua.includes('Linux') ? 'Linux'
+        : ua.includes('Android') ? 'Android'
+        : ua.includes('iPhone') || ua.includes('iPad') ? 'iOS'
+        : '';
+      return `${b.name} ${match[1]}${os ? ` (${os})` : ''}`;
+    }
+  }
+
+  // Truncate raw UA if nothing matched
+  return ua.length > 80 ? ua.substring(0, 80) + '...' : ua;
+}
+
 function formatValue(
   value: unknown,
   type: string,
@@ -155,6 +322,10 @@ function formatValue(
 
   if (type === 'boolean') {
     return value === true ? 'Yes' : value === false ? 'No' : String(value);
+  }
+
+  if (type === 'signature') {
+    return String(value);
   }
 
   if (type === 'select' && options) {

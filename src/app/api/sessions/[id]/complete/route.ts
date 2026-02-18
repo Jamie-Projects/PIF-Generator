@@ -42,6 +42,23 @@ export async function POST(
         where: { formId: session.propertyForm.id },
         data: { status: 'COMPLETED' },
       });
+
+      // Stamp server-side IP into declaration section audit trail
+      const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+        || request.headers.get('x-real-ip')
+        || 'unknown';
+      const declarationSection = session.propertyForm.sections.find(
+        s => s.sectionKey === 'declaration'
+      );
+      if (declarationSection) {
+        const existingData = (declarationSection.data as Record<string, unknown>) || {};
+        await prisma.formSection.update({
+          where: { id: declarationSection.id },
+          data: {
+            data: { ...existingData, signature_ip: clientIp },
+          },
+        });
+      }
     }
 
     // Fire webhooks

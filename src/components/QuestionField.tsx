@@ -197,6 +197,32 @@ export default function QuestionField({ field, value, onChange, allValues, autoA
           </button>
         </div>
       )}
+
+      {field.type === 'signature' && (
+        <div className="mt-1 space-y-4">
+          <input
+            id={field.key}
+            type="text"
+            value={(value as string) || ''}
+            placeholder="Type your full legal name"
+            onChange={(e) => onChange(field.key, e.target.value)}
+            className={inputClass}
+            autoComplete="name"
+          />
+          {(value as string)?.trim() && (
+            <div className="rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 p-6 text-center">
+              <div
+                className="text-3xl text-gray-900 dark:text-white leading-relaxed"
+                style={{ fontFamily: "'Dancing Script', 'Segoe Script', 'Apple Chancery', cursive" }}
+              >
+                {(value as string).trim()}
+              </div>
+              <div className="mt-2 mx-auto w-48 border-t-2 border-gray-300 dark:border-gray-500" />
+              <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">Electronic Signature</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

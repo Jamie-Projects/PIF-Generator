@@ -1,4 +1,4 @@
-export type FieldType = 'text' | 'textarea' | 'boolean' | 'date' | 'select' | 'number';
+export type FieldType = 'text' | 'textarea' | 'boolean' | 'date' | 'select' | 'number' | 'signature';
 
 export interface FormField {
   key: string;
@@ -518,8 +518,7 @@ export const BASPI_SECTIONS: FormSectionDef[] = [
     part: 'B',
     fields: [
       { key: 'declaration_confirmed', label: 'I confirm the information I have provided is accurate and complete to the best of my knowledge', type: 'boolean', required: true, helpText: 'Update your solicitor if anything changes later.' },
-      { key: 'declaration_date', label: 'Date of declaration', type: 'date', required: true },
-      { key: 'declaration_name', label: 'Full name', type: 'text', required: true, helpText: 'This acts as your signature.' },
+      { key: 'declaration_name', label: 'Type your full legal name to sign', type: 'signature', required: true, helpText: 'This acts as your electronic signature.' },
     ],
   },
 ];

@@ -233,8 +233,30 @@ export default function FormWizard({
       return;
     }
 
-    // Save current section
-    if (currentSection) {
+    // Capture audit data for signature
+    const declarationSection = sections.find(s => s.sectionKey === 'declaration');
+    const declarationData = (declarationSection?.data as Record<string, unknown>) || {};
+    const auditData = {
+      ...declarationData,
+      signature_timestamp: new Date().toISOString(),
+      signature_useragent: navigator.userAgent,
+      signature_screen: `${window.screen.width}x${window.screen.height}`,
+      signature_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      signature_language: navigator.language,
+    };
+
+    // Save declaration with audit data
+    if (declarationSection) {
+      setSections(prev =>
+        prev.map(s =>
+          s.sectionKey === 'declaration' ? { ...s, data: auditData } : s
+        )
+      );
+      await saveSection('declaration', auditData, currentStep);
+    }
+
+    // Save current section if different from declaration
+    if (currentSection && currentSection.sectionKey !== 'declaration') {
       await saveSection(currentSection.sectionKey, sectionData, currentStep);
     }
 
