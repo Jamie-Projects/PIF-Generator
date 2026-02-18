@@ -133,42 +133,41 @@ export async function POST(request: Request) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || request.headers.get('origin') || 'http://localhost:3000';
     const formUrl = `${baseUrl}/form/${token}`;
 
+    // Build seed data from the information provided at session creation
+    const seedData: Record<string, Record<string, unknown>> = {};
+
+    // Seed address into property_details
+    const addressParts = propertyAddress.split(',').map((s: string) => s.trim());
+    const propertyDetailsSeed: Record<string, unknown> = { postcode: propertyPostcode };
+    if (addressParts[0]) propertyDetailsSeed.address_line1 = addressParts[0];
+    if (addressParts.length > 1) propertyDetailsSeed.city = addressParts[addressParts.length - 1];
+    if (addressParts.length > 2) propertyDetailsSeed.address_line2 = addressParts.slice(1, -1).join(', ');
+    seedData.property_details = propertyDetailsSeed;
+
+    // Seed seller details
+    if (sellerName || sellerEmail) {
+      const sellerSeed: Record<string, unknown> = {};
+      if (sellerName) sellerSeed.seller_full_name = sellerName;
+      if (sellerEmail) sellerSeed.seller_email = sellerEmail;
+      seedData.seller_details = sellerSeed;
+    }
+
     // Attempt Chimnie lookup and prepopulation
     let chimnieStatus: 'prepopulated' | 'not_found' | 'unavailable' | 'skipped' = 'skipped';
     let chimnieMessage: string | undefined;
-    let fieldCount = 0;
-    let timeSaved = 0;
+    let chimnieFieldCount = 0;
 
     try {
       const raw = await getPropertyByAddress(propertyAddress, autocompleteSession);
       const normalised = normaliseChimnieResponse(raw);
       const mapped = mapToBaspiFields(normalised);
-      fieldCount = countPrepopulatedFields(mapped);
-      timeSaved = estimateTimeSaved(fieldCount);
+      chimnieFieldCount = countPrepopulatedFields(mapped);
 
-      if (fieldCount > 0 && session.propertyForm) {
-        // Write prepopulated data into each matching section
-        const sectionMap = new Map(
-          session.propertyForm.sections.map(s => [s.sectionKey, s.id])
-        );
-
-        const updates = Object.entries(mapped)
-          .filter(([key]) => sectionMap.has(key))
-          .map(([key, data]) =>
-            prisma.formSection.update({
-              where: { id: sectionMap.get(key)! },
-              data: {
-                data: data as Prisma.InputJsonValue,
-                status: 'IN_PROGRESS',
-                lastSavedAt: new Date(),
-              },
-            })
-          );
-
-        if (updates.length > 0) {
-          await prisma.$transaction(updates);
+      if (chimnieFieldCount > 0) {
+        // Merge Chimnie data with seed data (Chimnie overrides seed where both exist)
+        for (const [key, data] of Object.entries(mapped)) {
+          seedData[key] = { ...(seedData[key] || {}), ...data };
         }
-
         chimnieStatus = 'prepopulated';
       } else {
         chimnieStatus = 'not_found';
@@ -186,6 +185,36 @@ export async function POST(request: Request) {
       }
     }
 
+    // Write all seed + Chimnie data into sections
+    if (session.propertyForm) {
+      const sectionMap = new Map(
+        session.propertyForm.sections.map(s => [s.sectionKey, s.id])
+      );
+
+      const updates = Object.entries(seedData)
+        .filter(([key]) => sectionMap.has(key))
+        .map(([key, data]) =>
+          prisma.formSection.update({
+            where: { id: sectionMap.get(key)! },
+            data: {
+              data: data as Prisma.InputJsonValue,
+              status: 'IN_PROGRESS',
+              lastSavedAt: new Date(),
+            },
+          })
+        );
+
+      if (updates.length > 0) {
+        await prisma.$transaction(updates);
+      }
+    }
+
+    // Calculate totals: seed fields + Chimnie fields
+    const totalFieldCount = Object.values(seedData).reduce(
+      (sum, section) => sum + Object.keys(section).length, 0
+    );
+    const timeSaved = estimateTimeSaved(totalFieldCount);
+
     return NextResponse.json({
       sessionId: session.id,
       token: session.token,
@@ -196,7 +225,8 @@ export async function POST(request: Request) {
       },
       chimnieStatus,
       chimnieMessage,
-      fieldCount,
+      fieldCount: totalFieldCount,
+      chimnieFieldCount,
       timeSaved,
     }, { status: 201 });
   } catch (error) {

@@ -56,12 +56,13 @@ export default function FormWizard({
   const contentRef = useRef<HTMLDivElement>(null);
 
   // Determine if data was already prepopulated server-side
-  const hasPrepopulatedData = useMemo(() => {
-    return initialSections.some(s => {
+  const prepopulatedFieldCount = useMemo(() => {
+    return initialSections.reduce((sum, s) => {
       const data = s.data as Record<string, unknown>;
-      return Object.values(data).some(v => v !== undefined && v !== null && v !== '');
-    });
+      return sum + Object.values(data).filter(v => v !== undefined && v !== null && v !== '').length;
+    }, 0);
   }, [initialSections]);
+  const hasPrepopulatedData = prepopulatedFieldCount > 0;
 
   // Flow state: welcome -> (prepopulation if needed) -> form
   const [showWelcome, setShowWelcome] = useState(() => {
@@ -359,6 +360,7 @@ export default function FormWizard({
       <WelcomePage
         companyName={companyName}
         hasPrepopulatedData={hasPrepopulatedData}
+        prepopulatedFieldCount={prepopulatedFieldCount}
         onGetStarted={handleWelcomeGetStarted}
       />
     );

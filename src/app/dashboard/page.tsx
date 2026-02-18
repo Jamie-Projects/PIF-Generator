@@ -216,7 +216,14 @@ function CreateSessionModal({ onClose, onCreated }: { onClose: () => void; onCre
   const [sellerEmail, setSellerEmail] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
-  const [result, setResult] = useState<{ formUrl: string; chimnieStatus?: string; chimnieMessage?: string } | null>(null);
+  const [result, setResult] = useState<{
+    formUrl: string;
+    chimnieStatus?: string;
+    chimnieMessage?: string;
+    fieldCount?: number;
+    chimnieFieldCount?: number;
+    timeSaved?: number;
+  } | null>(null);
 
   // Autocomplete state
   const [addressQuery, setAddressQuery] = useState('');
@@ -340,13 +347,27 @@ function CreateSessionModal({ onClose, onCreated }: { onClose: () => void; onCre
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Session Created</h3>
 
           {result.chimnieStatus === 'prepopulated' && (
-            <div className="mb-4 rounded-lg bg-green-50 dark:bg-green-900/30 px-3 py-2 text-sm text-green-700 dark:text-green-400">
-              Property data found and pre-filled into the form.
+            <div className="mb-4 rounded-lg bg-green-50 dark:bg-green-900/30 px-4 py-3 text-sm text-green-700 dark:text-green-400">
+              <p className="font-semibold">
+                {result.fieldCount} of ~150 questions pre-filled
+              </p>
+              <p className="mt-0.5">
+                That&apos;s roughly <strong>{result.timeSaved} minutes</strong> saved for your seller.
+                {result.chimnieFieldCount ? ` (${result.chimnieFieldCount} from property data, ${(result.fieldCount || 0) - (result.chimnieFieldCount || 0)} from your input)` : ''}
+              </p>
             </div>
           )}
           {result.chimnieStatus === 'not_found' && (
-            <div className="mb-4 rounded-lg bg-amber-50 dark:bg-amber-900/30 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
-              {result.chimnieMessage || 'Property not found — seller will fill in all fields manually.'}
+            <div className="mb-4 rounded-lg bg-amber-50 dark:bg-amber-900/30 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
+              <p>{result.chimnieMessage || 'Property not found — seller will fill in all fields manually.'}</p>
+              {(result.fieldCount || 0) > 0 && (
+                <p className="mt-0.5">Address and seller details have been pre-filled ({result.fieldCount} fields).</p>
+              )}
+            </div>
+          )}
+          {result.chimnieStatus === 'unavailable' && (result.fieldCount || 0) > 0 && (
+            <div className="mb-4 rounded-lg bg-blue-50 dark:bg-blue-900/30 px-4 py-3 text-sm text-blue-700 dark:text-blue-400">
+              Address and seller details pre-filled ({result.fieldCount} fields). Property data lookup was unavailable.
             </div>
           )}
 
