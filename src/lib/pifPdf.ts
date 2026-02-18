@@ -193,7 +193,7 @@ function renderSignatureBlock(
 
   doc.setDrawColor(180, 180, 180);
   doc.setLineWidth(0.5);
-  doc.roundedRect(boxX, y, boxW, 40, 3, 3);
+  doc.roundedRect(boxX, y, boxW, 40, 3, 3, 'S');
 
   if (signedName) {
     // Signature name in italic (simulates cursive in PDF)
