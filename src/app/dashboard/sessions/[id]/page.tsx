@@ -96,7 +96,9 @@ export default function SessionDetailPage() {
   }
 
   const totalSections = BASPI_SECTIONS.length;
-  const completedSections = session.propertyForm?.sections.filter(s => s.status === 'COMPLETED').length ?? 0;
+  const completedSections = session.status === 'COMPLETED'
+    ? totalSections
+    : (session.propertyForm?.sections.filter(s => s.status === 'COMPLETED').length ?? 0);
   const progress = session.status === 'COMPLETED' ? 100 : Math.round((completedSections / totalSections) * 100);
 
   return (
@@ -204,6 +206,8 @@ export default function SessionDetailPage() {
           const sectionDef = BASPI_SECTIONS.find(s => s.key === section.sectionKey);
           const data = section.data as Record<string, unknown>;
           const hasData = Object.keys(data).length > 0;
+          // If the session is completed, treat all sections as completed
+          const effectiveStatus = session.status === 'COMPLETED' ? 'COMPLETED' : section.status;
 
           return (
             <details key={section.sectionKey} className="rounded-xl bg-white dark:bg-gray-800 shadow-sm">
@@ -211,9 +215,9 @@ export default function SessionDetailPage() {
                 <div className="flex items-center gap-3">
                   <span
                     className={`h-2 w-2 rounded-full ${
-                      section.status === 'COMPLETED'
+                      effectiveStatus === 'COMPLETED'
                         ? 'bg-green-500'
-                        : section.status === 'IN_PROGRESS'
+                        : effectiveStatus === 'IN_PROGRESS'
                           ? 'bg-yellow-500'
                           : 'bg-gray-300'
                     }`}
@@ -223,14 +227,14 @@ export default function SessionDetailPage() {
                 </div>
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                    section.status === 'COMPLETED'
+                    effectiveStatus === 'COMPLETED'
                       ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400'
-                      : section.status === 'IN_PROGRESS'
+                      : effectiveStatus === 'IN_PROGRESS'
                         ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-400'
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                   }`}
                 >
-                  {section.status === 'COMPLETED' ? 'Complete' : section.status === 'IN_PROGRESS' ? 'In Progress' : 'Not Started'}
+                  {effectiveStatus === 'COMPLETED' ? 'Complete' : effectiveStatus === 'IN_PROGRESS' ? 'In Progress' : 'Not Started'}
                 </span>
               </summary>
               <div className="border-t dark:border-gray-700 px-4 py-3">
