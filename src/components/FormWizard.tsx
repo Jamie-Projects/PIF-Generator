@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { BASPI_SECTIONS, FormField } from '@/lib/baspiSchema';
 import QuestionField from './QuestionField';
 import SaveIndicator from './SaveIndicator';
-import ConveyancerSummary from './ConveyancerSummary';
+import CompletionSummary from './CompletionSummary';
 import PrepopulationConsent from './PrepopulationConsent';
 
 interface SectionData {
@@ -324,7 +324,7 @@ export default function FormWizard({
   }
 
   if (isCompleted) {
-    const riskSections = sections.map(s => ({
+    const sectionDataForSummary = sections.map(s => ({
       sectionKey: s.sectionKey,
       data: s.data as Record<string, unknown>,
     }));
@@ -335,29 +335,12 @@ export default function FormWizard({
     const seller = (sections.find(s => s.sectionKey === 'seller_details')?.data as Record<string, unknown> | undefined)?.seller_full_name as string || '';
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800 py-8">
-        {/* Success header */}
-        <div className="mx-auto max-w-lg px-4 text-center mb-8">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
-            <svg className="h-8 w-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h2 className="mb-2 text-2xl font-bold text-gray-900 dark:text-white">All done!</h2>
-          <p className="text-gray-600 dark:text-gray-300">
-            Your Property Information Form has been submitted to <strong>{companyName}</strong>. Thank you!
-          </p>
-        </div>
-
-        {/* Conveyancer Summary */}
-        <div className="mx-auto max-w-lg bg-white dark:bg-gray-800 rounded-2xl shadow-xl py-6 mb-6">
-          <ConveyancerSummary
-            sections={riskSections}
-            propertyAddress={address}
-            sellerName={seller}
-          />
-        </div>
-      </div>
+      <CompletionSummary
+        companyName={companyName}
+        sections={sectionDataForSummary}
+        propertyAddress={address}
+        sellerName={seller}
+      />
     );
   }
 
