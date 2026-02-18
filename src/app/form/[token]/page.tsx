@@ -1,17 +1,52 @@
 import FormWizard from '@/components/FormWizard';
+import { prisma } from '@/lib/prisma';
+import { BASPI_SECTIONS } from '@/lib/baspiSchema';
 
 async function getFormData(token: string) {
-  // Use internal API during SSR
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-  const res = await fetch(`${baseUrl}/api/form/${token}`, {
-    cache: 'no-store',
+  const session = await prisma.formSession.findUnique({
+    where: { token },
+    include: {
+      company: { select: { name: true } },
+      propertyForm: {
+        include: {
+          sections: {
+            orderBy: { sectionKey: 'asc' },
+          },
+        },
+      },
+    },
   });
 
-  if (!res.ok) {
+  if (!session || session.status === 'EXPIRED') {
     return null;
   }
 
-  return res.json();
+  const sectionOrder = BASPI_SECTIONS.map(s => s.key);
+  const sortedSections = session.propertyForm?.sections
+    .slice()
+    .sort((a, b) => sectionOrder.indexOf(a.sectionKey) - sectionOrder.indexOf(b.sectionKey));
+
+  return {
+    sessionId: session.id,
+    companyName: session.company.name,
+    status: session.status,
+    currentStep: session.currentStep,
+    form: {
+      id: session.propertyForm?.id || '',
+      address: session.propertyForm?.address || '',
+      postcode: session.propertyForm?.postcode || '',
+      sellerName: session.propertyForm?.sellerName || '',
+      sellerEmail: session.propertyForm?.sellerEmail || '',
+    },
+    sections: sortedSections?.map(s => ({
+      id: s.id,
+      sectionKey: s.sectionKey,
+      title: s.title,
+      status: s.status,
+      data: s.data as Record<string, unknown>,
+      lastSavedAt: s.lastSavedAt?.toISOString() || null,
+    })) || [],
+  };
 }
 
 export default async function FormPage({ params }: { params: { token: string } }) {
