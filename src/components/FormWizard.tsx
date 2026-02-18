@@ -379,8 +379,16 @@ export default function FormWizard({
         <div className="p-4 space-y-1 pb-8">
           <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">Part A - Material Facts</p>
           {BASPI_SECTIONS.map((sectionDef, index) => {
-            const sectionStatus = sections.find(s => s.sectionKey === sectionDef.key)?.status || 'NOT_STARTED';
+            const section = sections.find(s => s.sectionKey === sectionDef.key);
+            const sectionStatus = section?.status || 'NOT_STARTED';
             const isActive = currentStep === index;
+            const data = (section?.data as Record<string, unknown>) || {};
+            const missingCount = sectionDef.fields.filter(f => {
+              if (!f.required) return false;
+              if (f.showWhen && data[f.showWhen.field] !== f.showWhen.value) return false;
+              const val = data[f.key];
+              return val === undefined || val === null || val === '';
+            }).length;
 
             if (sectionDef.part === 'B' && BASPI_SECTIONS[index - 1]?.part === 'A') {
               return (
@@ -391,6 +399,7 @@ export default function FormWizard({
                     status={sectionStatus}
                     isActive={isActive}
                     index={index}
+                    missingCount={missingCount}
                     onClick={() => goToSection(index)}
                   />
                 </div>
@@ -404,6 +413,7 @@ export default function FormWizard({
                 status={sectionStatus}
                 isActive={isActive}
                 index={index}
+                missingCount={missingCount}
                 onClick={() => goToSection(index)}
               />
             );
@@ -515,12 +525,14 @@ function SectionNavItem({
   status,
   isActive,
   index,
+  missingCount,
   onClick,
 }: {
   title: string;
   status: string;
   isActive: boolean;
   index: number;
+  missingCount: number;
   onClick: () => void;
 }) {
   return (
@@ -549,7 +561,12 @@ function SectionNavItem({
           index + 1
         )}
       </span>
-      <span className={`text-sm ${isActive ? 'font-semibold' : 'font-medium'}`}>{title}</span>
+      <span className={`flex-1 text-sm ${isActive ? 'font-semibold' : 'font-medium'}`}>{title}</span>
+      {missingCount > 0 && (
+        <span className="shrink-0 rounded-full bg-red-100 dark:bg-red-900/50 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">
+          {missingCount} left
+        </span>
+      )}
     </button>
   );
 }

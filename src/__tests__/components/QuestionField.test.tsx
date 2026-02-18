@@ -100,7 +100,7 @@ describe('QuestionField', () => {
       <QuestionField field={field} value="" onChange={mockOnChange} allValues={{}} />
     );
 
-    expect(screen.getByText('Select...')).toBeInTheDocument();
+    // Select fields render as button list (not dropdown)
     expect(screen.getByText('Option A')).toBeInTheDocument();
     expect(screen.getByText('Option B')).toBeInTheDocument();
   });
@@ -133,6 +133,9 @@ describe('QuestionField', () => {
       <QuestionField field={field} value="" onChange={mockOnChange} allValues={{}} />
     );
 
+    // Help text is behind a toggle — click to reveal
+    expect(screen.getByText('What does this mean?')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('What does this mean?'));
     expect(screen.getByText('This is helpful information')).toBeInTheDocument();
   });
 

@@ -204,10 +204,20 @@ function CreateSessionModal({ onClose, onCreated }: { onClose: () => void; onCre
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
   const [externalUserId, setExternalUserId] = useState('');
+  const [propertyAddress, setPropertyAddress] = useState('');
+  const [propertyPostcode, setPropertyPostcode] = useState('');
+  const [sellerName, setSellerName] = useState('');
+  const [sellerEmail, setSellerEmail] = useState('');
   const [creating, setCreating] = useState(false);
+  const [error, setError] = useState('');
   const [result, setResult] = useState<{ formUrl: string } | null>(null);
 
   const handleCreate = async () => {
+    if (!propertyAddress.trim() || !propertyPostcode.trim()) {
+      setError('Property address and postcode are required');
+      return;
+    }
+    setError('');
     setCreating(true);
     const token = localStorage.getItem('pif_token');
 
@@ -217,12 +227,19 @@ function CreateSessionModal({ onClose, onCreated }: { onClose: () => void; onCre
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ clientName, clientEmail, externalUserId }),
+      body: JSON.stringify({
+        clientName, clientEmail, externalUserId,
+        propertyAddress, propertyPostcode,
+        sellerName, sellerEmail,
+      }),
     });
 
     if (res.ok) {
       const data = await res.json();
       setResult(data);
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error || 'Failed to create session');
     }
     setCreating(false);
   };
@@ -261,10 +278,55 @@ function CreateSessionModal({ onClose, onCreated }: { onClose: () => void; onCre
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onClick={onClose}>
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl my-auto" onClick={e => e.stopPropagation()}>
         <h3 className="text-lg font-bold text-gray-900 mb-4">Create New Session</h3>
+        {error && (
+          <div className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+        )}
         <div className="space-y-4">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Property</p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Property Address <span className="text-red-400">*</span></label>
+            <input
+              value={propertyAddress}
+              onChange={e => setPropertyAddress(e.target.value)}
+              className="w-full rounded-lg border px-3 py-2 text-sm"
+              placeholder="e.g. 42 Acacia Avenue, London"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Postcode <span className="text-red-400">*</span></label>
+            <input
+              value={propertyPostcode}
+              onChange={e => setPropertyPostcode(e.target.value)}
+              className="w-full rounded-lg border px-3 py-2 text-sm"
+              placeholder="e.g. SW1A 1AA"
+            />
+          </div>
+
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide pt-2">Seller</p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Seller Name</label>
+            <input
+              value={sellerName}
+              onChange={e => setSellerName(e.target.value)}
+              className="w-full rounded-lg border px-3 py-2 text-sm"
+              placeholder="e.g. Jane Doe"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Seller Email</label>
+            <input
+              value={sellerEmail}
+              onChange={e => setSellerEmail(e.target.value)}
+              className="w-full rounded-lg border px-3 py-2 text-sm"
+              placeholder="e.g. jane@example.com"
+              type="email"
+            />
+          </div>
+
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide pt-2">Your Details</p>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Client Name</label>
             <input
