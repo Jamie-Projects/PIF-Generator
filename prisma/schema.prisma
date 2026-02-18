@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Company {
+  id            String       @id @default(uuid())
+  name          String
+  email         String       @unique
+  passwordHash  String       @map("password_hash")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  apiKeys       ApiKey[]
+  sessions      FormSession[]
+  webhooks      Webhook[]
+
+  @@map("companies")
+}
+
+model ApiKey {
+  id            String       @id @default(uuid())
+  companyId     String       @map("company_id")
+  key           String       @unique
+  name          String       @default("Default")
+  active        Boolean      @default(true)
+  createdAt     DateTime     @default(now()) @map("created_at")
+  lastUsedAt    DateTime?    @map("last_used_at")
+  company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+}
+
+model Webhook {
+  id            String       @id @default(uuid())
+  companyId     String       @map("company_id")
+  url           String
+  events        String[]     @default(["session.completed"])
+  active        Boolean      @default(true)
+  secret        String
+  createdAt     DateTime     @default(now()) @map("created_at")
+  company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("webhooks")
+}
+
+model FormSession {
+  id              String         @id @default(uuid())
+  companyId       String         @map("company_id")
+  token           String         @unique
+  externalUserId  String?        @map("external_user_id")
+  clientName      String?        @map("client_name")
+  clientEmail     String?        @map("client_email")
+  status          SessionStatus  @default(ACTIVE)
+  currentStep     Int            @default(0) @map("current_step")
+  reminderSentAt  DateTime?      @map("reminder_sent_at")
+  lastActivityAt  DateTime       @default(now()) @map("last_activity_at")
+  completedAt     DateTime?      @map("completed_at")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  propertyForm    PropertyForm?
+
+  @@map("form_sessions")
+}
+
+model PropertyForm {
+  id            String         @id @default(uuid())
+  sessionId     String         @unique @map("session_id")
+  address       String         @default("")
+  postcode      String         @default("")
+  sellerName    String         @default("") @map("seller_name")
+  sellerEmail   String         @default("") @map("seller_email")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  session       FormSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sections      FormSection[]
+
+  @@map("property_forms")
+}
+
+model FormSection {
+  id             String       @id @default(uuid())
+  formId         String       @map("form_id")
+  sectionKey     String       @map("section_key")
+  title          String
+  status         SectionStatus @default(NOT_STARTED)
+  data           Json         @default("{}")
+  lastSavedAt    DateTime?    @map("last_saved_at")
+  form           PropertyForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@unique([formId, sectionKey])
+  @@map("form_sections")
+}
+
+enum SessionStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+}
+
+enum SectionStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
