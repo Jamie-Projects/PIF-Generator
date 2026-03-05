@@ -3,7 +3,13 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { prisma } from './prisma';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is required');
+  }
+  return secret;
+}
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
@@ -14,12 +20,12 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 export function generateToken(companyId: string): string {
-  return jwt.sign({ companyId }, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign({ companyId }, getJwtSecret(), { expiresIn: '7d' });
 }
 
 export function verifyToken(token: string): { companyId: string } | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as { companyId: string };
+    return jwt.verify(token, getJwtSecret()) as { companyId: string };
   } catch {
     return null;
   }
@@ -82,7 +88,7 @@ export async function isAdmin(companyId: string): Promise<boolean> {
     where: { id: companyId },
     select: { email: true },
   });
-  return company?.email === adminEmail;
+  return company?.email.toLowerCase() === adminEmail.toLowerCase();
 }
 
 export async function authenticateAdmin(request: Request): Promise<string | null> {

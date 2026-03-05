@@ -55,7 +55,7 @@ export async function GET(request: Request) {
 
     console.error('Chimnie property lookup error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch property data', details: String(error) },
+      { error: 'Failed to fetch property data' },
       { status: 502 }
     );
   }

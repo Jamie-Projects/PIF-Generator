@@ -193,11 +193,7 @@ export default function PrepopulationConsent({ postcode, address, onAccept, onSk
                     onClick={() => selectAddress(addr)}
                     className="w-full px-4 py-3 text-left text-sm text-gray-900 dark:text-white hover:bg-blue-50 dark:hover:bg-blue-900/30 border-b dark:border-gray-700 last:border-b-0"
                   >
-                    {autocompleteResults.highlights[i] ? (
-                      <span dangerouslySetInnerHTML={{ __html: autocompleteResults.highlights[i] }} />
-                    ) : (
-                      addr
-                    )}
+                    {autocompleteResults.highlights[i] || addr}
                   </button>
                 ))}
               </div>

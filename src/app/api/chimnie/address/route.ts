@@ -29,13 +29,13 @@ export async function GET(request: Request) {
     const result = await autocompleteAddress(query!, session);
     return NextResponse.json({
       addresses: result.addresses,
-      highlights: result.highlights,
+      highlights: result.highlights.map(h => h.replace(/<[^>]*>/g, '')),
       session: result.session,
     });
   } catch (error) {
     console.error('Chimnie address search error:', error);
     return NextResponse.json(
-      { error: 'Failed to search addresses', details: String(error) },
+      { error: 'Failed to search addresses' },
       { status: 502 }
     );
   }

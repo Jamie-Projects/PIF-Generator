@@ -8,6 +8,10 @@ import {
   generateWebhookSecret,
 } from '@/lib/auth';
 
+beforeAll(() => {
+  process.env.JWT_SECRET = 'test-secret-for-unit-tests';
+});
+
 describe('Auth utilities', () => {
   test('hashPassword creates a bcrypt hash', async () => {
     const hash = await hashPassword('test-password');
