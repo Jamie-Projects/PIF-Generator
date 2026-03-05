@@ -31,11 +31,15 @@ export async function POST(request: Request) {
 
     const passwordHash = await hashPassword(password);
 
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const isAdmin = adminEmail && email.toLowerCase() === adminEmail.toLowerCase();
+
     const company = await prisma.company.create({
       data: {
         name,
         email,
         passwordHash,
+        approved: !!isAdmin,
         apiKeys: {
           create: {
             key: generateApiKey(),
@@ -56,6 +60,7 @@ export async function POST(request: Request) {
         id: company.id,
         name: company.name,
         email: company.email,
+        approved: company.approved,
       },
       apiKey: company.apiKeys[0].key,
     }, { status: 201 });

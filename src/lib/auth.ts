@@ -41,15 +41,17 @@ export async function authenticateRequest(request: Request): Promise<string | nu
   const authHeader = request.headers.get('Authorization');
   if (!authHeader) return null;
 
+  let companyId: string | null = null;
+
   // Try Bearer token (JWT from dashboard login)
   if (authHeader.startsWith('Bearer ')) {
     const token = authHeader.slice(7);
     const payload = verifyToken(token);
-    return payload?.companyId ?? null;
+    companyId = payload?.companyId ?? null;
   }
 
   // Try API key
-  if (authHeader.startsWith('ApiKey ')) {
+  if (!companyId && authHeader.startsWith('ApiKey ')) {
     const key = authHeader.slice(7);
     const apiKey = await prisma.apiKey.findUnique({ where: { key } });
     if (apiKey && apiKey.active) {
@@ -57,9 +59,38 @@ export async function authenticateRequest(request: Request): Promise<string | nu
         where: { id: apiKey.id },
         data: { lastUsedAt: new Date() },
       });
-      return apiKey.companyId;
+      companyId = apiKey.companyId;
     }
   }
 
-  return null;
+  if (!companyId) return null;
+
+  // Check company is approved
+  const company = await prisma.company.findUnique({
+    where: { id: companyId },
+    select: { approved: true },
+  });
+  if (!company?.approved) return null;
+
+  return companyId;
+}
+
+export async function isAdmin(companyId: string): Promise<boolean> {
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (!adminEmail) return false;
+  const company = await prisma.company.findUnique({
+    where: { id: companyId },
+    select: { email: true },
+  });
+  return company?.email === adminEmail;
+}
+
+export async function authenticateAdmin(request: Request): Promise<string | null> {
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  const token = authHeader.slice(7);
+  const payload = verifyToken(token);
+  if (!payload?.companyId) return null;
+  const admin = await isAdmin(payload.companyId);
+  return admin ? payload.companyId : null;
 }
