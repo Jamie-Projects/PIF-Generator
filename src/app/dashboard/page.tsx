@@ -443,11 +443,7 @@ function CreateSessionModal({ onClose, onCreated }: { onClose: () => void; onCre
                       onClick={() => selectAddress(addr)}
                       className="w-full px-3 py-2.5 text-left text-sm text-gray-900 dark:text-white hover:bg-blue-50 dark:hover:bg-blue-900/30 border-b dark:border-gray-600 last:border-b-0"
                     >
-                      {autocompleteResults.highlights[i] ? (
-                        <span dangerouslySetInnerHTML={{ __html: autocompleteResults.highlights[i] }} />
-                      ) : (
-                        addr
-                      )}
+                      {autocompleteResults.highlights[i] || addr}
                     </button>
                   ))}
                   <button

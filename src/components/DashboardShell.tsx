@@ -18,6 +18,7 @@ const NAV_ITEMS = [
 export default function DashboardShell({ children }: DashboardShellProps) {
   const [companyName, setCompanyName] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -29,6 +30,13 @@ export default function DashboardShell({ children }: DashboardShellProps) {
     }
     const name = localStorage.getItem('pif_company_name');
     setCompanyName(name || 'Dashboard');
+
+    // Check if user is admin
+    fetch('/api/admin/companies', {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(res => {
+      if (res.ok) setIsAdmin(true);
+    }).catch(() => {});
   }, [router]);
 
   const handleLogout = () => {
@@ -106,6 +114,22 @@ export default function DashboardShell({ children }: DashboardShellProps) {
                   {item.label}
                 </Link>
               ))}
+              {isAdmin && (
+                <Link
+                  href="/dashboard/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                    pathname === '/dashboard/admin'
+                      ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                  Admin
+                </Link>
+              )}
             </div>
             <div className="mt-4 pt-4 border-t dark:border-gray-700 sm:hidden">
               <button

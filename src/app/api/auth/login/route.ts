@@ -38,6 +38,7 @@ export async function POST(request: Request) {
         id: company.id,
         name: company.name,
         email: company.email,
+        approved: company.approved,
       },
     });
   } catch (error) {

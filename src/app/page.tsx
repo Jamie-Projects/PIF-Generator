@@ -37,6 +37,12 @@ export default function Home() {
         return;
       }
 
+      if (!data.company.approved) {
+        setError('Your account is pending admin approval. You\'ll be able to sign in once approved.');
+        setLoading(false);
+        return;
+      }
+
       localStorage.setItem('pif_token', data.token);
       localStorage.setItem('pif_company_name', data.company.name);
       router.push('/dashboard');
